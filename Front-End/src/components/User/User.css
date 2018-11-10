@@ -1,0 +1,32 @@
+.input-box{
+    margin-top: 2em;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: auto;
+    z-index: 999;
+}
+.input-box1{
+    position: absolute;
+    margin-top: 4em;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: auto;
+    z-index: 999;
+}
+.input-box input{
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+.input-box1 input{
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+.btn-custom{
+    display: flex;
+    justify-content: center;
+    margin-top: 1em;
+}
+.google-map{
+    width: 100%;
+    height: 100vh;
+}
