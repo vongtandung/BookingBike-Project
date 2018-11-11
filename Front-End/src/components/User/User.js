@@ -5,24 +5,48 @@ import "./User.css";
 import markerIco from '../../assets/images/marker-ico.png'
 
 class User extends Component {
+  constructor(props){
+    super(props);
+    this.onPlaceChange = this.onPlaceChange.bind(this);
+    this.onNoteChange = this.onNoteChange.bind(this);
+    this.onSendInfo = this.onSendInfo.bind(this);
+    this.state ={
+      place: '',
+      note: ''
+    }
+  }
+  onPlaceChange(value){
+    this.setState({
+      place: value
+    })
+  }
+  onNoteChange(event){
+    this.setState({
+      note: event.target.value
+    })
+  }
+  onSendInfo(){
+  }
   render() {
     return (
       <div className="user">
         <div className="user-input container-fluid input-box1">
-          <div class="input-group input-group-md">
+          <div className="input-group input-group-md">
           <input
+            ref = "note"
+            onBlur = {this.onNoteChange}
             type="text"
-            class="form-control"
+            className="form-control"
             aria-label="Large"
             aria-describedby="inputGroup-sizing-sm"
             placeholder="Nhập ghi chú"
           />
         </div>
         <div className="btn-custom">
-        <button type="button" class="btn btn-success btn-lg">Đặt Xe</button>
+        <button type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
         </div>
         </div>
-        <Map />
+        <Map onPlaceChange={this.onPlaceChange}/>
       </div>
       
     );
@@ -32,24 +56,45 @@ class Map extends Component {
   constructor(props) {
     super(props);
     this.getPoint = this.getPoint.bind(this);
+    this.onSearchBox = this.onSearchBox.bind(this);
+    this.onSearchInput = this.onSearchInput.bind(this);
+    this.onPlacesChanged = this.onPlacesChanged.bind(this);
+    this.onInputChange = this.onInputChange.bind(this);
     this.state = {
       center: {
         lat: 10.801940,
         lng: 106.738449
       },
-      zoom: 16
+      zoom: 16,
+      searchhBox: null,
+      searchInput: null,
+      searchhBoxTemp: ''
     }
   }
 
   getPoint(event) {
-    console.log(event)
     this.setState({
       center: {
         ...this.state.center,
         lat: event.latLng.lat(),
         lng: event.latLng.lng()
       }
-    }, () => console.log(this.state))
+    })
+  }
+  onPlacesChanged(){
+    this.state.onSearchInput.focus();
+    console.log(this.state.SearchBox.getPlaces())
+  }
+  onSearchBox(ref){
+    this.setState({SearchBox: ref}, () => {});
+  }
+  onSearchInput(ref){
+    this.setState({onSearchInput: ref});
+  }
+  onInputChange(event){
+    this.setState({searchInput: event.target.value}, () => {
+      this.props.onPlaceChange(this.state.searchInput);
+    })
   }
   render() {
 
@@ -62,6 +107,10 @@ class Map extends Component {
           onMapClick = {this.getPoint}
           center = {this.state.center}
           zoom = {this.state.zoom}
+          onPlacesChanged = {this.onPlacesChanged}
+          onSearchBox = {this.onSearchBox}
+          onSearchInput = {this.onSearchInput}
+          onInputChange = {this.onInputChange}
         />
       </div>
     );
@@ -76,20 +125,21 @@ const GoogleMapExample = withGoogleMap(props => (
     onClick={props.onMapClick}
   >
     <SearchBox
-        ref={props.onSearchBoxMounted}
         bounds={props.bounds}
-        controlPosition={window.
-          google.maps.ControlPosition.TOP_LEFT}
+        controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
         onPlacesChanged={props.onPlacesChanged}
-        inputPlaceholder="Customized your placeholder"
+        ref={props.onSearchBox}
     >
         <div className="user-input container-fluid input-box">
           <input
+            ref = {props.onSearchInput}
+            onBlur = {props.onInputChange}
             type="text"
-            class="form-control"
+            className="form-control"
             aria-label="Large"
             aria-describedby="inputGroup-sizing-sm"
             placeholder="Nhập địa chỉ..."
+            autoComplete="true"
           />
           </div>
         </SearchBox>
