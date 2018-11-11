@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import Login from './components/Login';
 import User from './components/User';
 import Driver from './components/Driver';
+import LocateIdentify from './components/LocateIdentify';
 
 import './App.css';
 
@@ -28,6 +29,10 @@ class App extends Component {
           <Switch>
             <Route path="/user" component={User} />
             <Route path="/driver" component={Driver} />
+            <Route path="/locate"
+              render={(props) => <LocateIdentify {...props} popup={this.showPopup}
+                isLogged={this.hideLayout} />}
+            />    
             <Route path="/login"
               render={(props) => <Login {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}

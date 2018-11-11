@@ -26,6 +26,7 @@ class User extends Component {
     })
   }
   onSendInfo(){
+    
   }
   render() {
     return (
