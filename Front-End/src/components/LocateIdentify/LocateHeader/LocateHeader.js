@@ -27,7 +27,7 @@ class LocateHeader extends Component {
           <ul className="navbar-nav ml-auto ml-md-0">
             <li className="nav-item dropdown no-arrow">
               <div className="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i className="fas fa-user-circle fa-fw" />
+                <i className="fas fa-user-circle fa-fw fa-2x" />
               </div>
               <div className="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                 <button className="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">Logout</button>
