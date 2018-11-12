@@ -1,76 +1,159 @@
 import React, { Component } from "react";
-import GoogleMapReact from "google-map-react";
+import { withGoogleMap, GoogleMap } from 'react-google-maps';
+import SearchBox from "react-google-maps/lib/components/places/SearchBox"
 import "./User.css";
 import io from "socket.io-client";
 
 var socket = io("http://localhost:3002");
 
 class User extends Component {
-  onClickMe(text)
-  {
-    socket.emit("client-send-place",text);
+  constructor(props){
+    super(props);
+    this.onPlaceChange = this.onPlaceChange.bind(this);
+    this.onNoteChange = this.onNoteChange.bind(this);
+    this.onSendInfo = this.onSendInfo.bind(this);
+    this.state ={
+      place: '',
+      note: ''
+    }
+  }
+  onPlaceChange(value){
+    this.setState({
+      place: value
+    })
+  }
+  onNoteChange(event){
+    this.setState({
+      note: event.target.value
+    })
+  }
+
+  onSendInfo(){
+   socket.emit("user-send-place",this.state);
+   //alert("test");
   }
   render() {
     return (
       <div className="user">
-        <div className="user-input container-fluid input-box">
-          <div class="input-group input-group-lg">
-            <input
-              type="text"
-              class="form-control"
-              aria-label="Large"
-              aria-describedby="inputGroup-sizing-sm"
-              placeholder="nhập điểm đón"
-            />
-          </div>
-          <div class="input-group input-group-lg">
+        <div className="user-input container-fluid input-box1">
+          <div className="input-group input-group-md">
           <input
+            ref = "note"
+            onBlur = {this.onNoteChange}
             type="text"
-            class="form-control"
+            className="form-control"
             aria-label="Large"
             aria-describedby="inputGroup-sizing-sm"
-            placeholder="nhập Ghi Chú"
+            placeholder="Nhập ghi chú"
           />
         </div>
         <div className="btn-custom">
-        <button type="button" class="btn btn-success btn-lg" id="bookbike" onClick={this.onClickMe.bind(this,"hehe") }>Đặt Xe</button>
+        <button type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
         </div>
         </div>
-        <GoogleMap />
-      </div>      
+        <Map onPlaceChange={this.onPlaceChange}/>
+      </div>
+      
     );
   }
 }
+class Map extends Component {
+  constructor(props) {
+    super(props);
+    this.getPoint = this.getPoint.bind(this);
+    this.onSearchBox = this.onSearchBox.bind(this);
+    this.onSearchInput = this.onSearchInput.bind(this);
+    this.onPlacesChanged = this.onPlacesChanged.bind(this);
+    this.onInputChange = this.onInputChange.bind(this);
+    this.state = {
+      center: {
+        lat: 10.801940,
+        lng: 106.738449
+      },
+      zoom: 16,
+      searchhBox: null,
+      searchInput: null,
+      searchhBoxTemp: ''
+    }
+  }
 
-class GoogleMap extends Component {
-  static defaultProps = {
-    center: {
-      lat: 10.80194,
-      lng: 106.73845
-    },
-    zoom: 16
-  };
-
+  getPoint(event) {
+    this.setState({
+      center: {
+        ...this.state.center,
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng()
+      }
+    })
+  }
+  onPlacesChanged(){
+    this.state.onSearchInput.focus();
+    console.log(this.state.SearchBox.getPlaces())
+  }
+  onSearchBox(ref){
+    this.setState({SearchBox: ref}, () => {});
+  }
+  onSearchInput(ref){
+    this.setState({onSearchInput: ref});
+  }
+  onInputChange(event){
+    this.setState({searchInput: event.target.value}, () => {
+      this.props.onPlaceChange(this.state.searchInput);
+    })
+  }
   render() {
+
     return (
-      // Important! Always set the container height explicitly
       <div className="google-map">
-        <GoogleMapReact
-          bootstrapURLKeys={{
-            key: "AIzaSyAF4NnJmtnjQIsG3cOP3Ci3-uJb0QCVr5E",
-            language: "vi",
-            region: "vi"
-          }}
-          defaultCenter={this.props.center}
-          defaultZoom={this.props.zoom}
-          options={mapOptions}
+        <GoogleMapExample
+          loadingElement={<div style={{ height: `100%` }} />}
+          containerElement={<div style={{ height: `90vh` }} />}
+          mapElement={<div style={{ height: `90%` }} />}
+          onMapClick = {this.getPoint}
+          center = {this.state.center}
+          zoom = {this.state.zoom}
+          onPlacesChanged = {this.onPlacesChanged}
+          onSearchBox = {this.onSearchBox}
+          onSearchInput = {this.onSearchInput}
+          onInputChange = {this.onInputChange}
         />
       </div>
     );
   }
-}
+};
+
+const GoogleMapExample = withGoogleMap(props => (
+  <GoogleMap
+    defaultCenter={ props.center }
+    defaultZoom={props.zoom}
+    options={mapOptions}
+    onClick={props.onMapClick}
+  >
+    <SearchBox
+        bounds={props.bounds}
+        controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
+        onPlacesChanged={props.onPlacesChanged}
+        ref={props.onSearchBox}
+    >
+        <div className="user-input container-fluid input-box">
+          <input
+            ref = {props.onSearchInput}
+            onBlur = {props.onInputChange}
+            type="text"
+            className="form-control"
+            aria-label="Large"
+            aria-describedby="inputGroup-sizing-sm"
+            placeholder="Nhập địa chỉ..."
+            autoComplete="true"
+          />
+          </div>
+        </SearchBox>
+  </GoogleMap>
+));
 
 const mapOptions = {
+  panControl: false,
+  mapTypeControl: false,
   styles: [
     {
       featureType: "road",
@@ -94,5 +177,6 @@ const mapOptions = {
     }
   ]
 };
+
 
 export default User;
