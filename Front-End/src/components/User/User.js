@@ -1,8 +1,10 @@
 import React, { Component } from "react";
-import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import { withGoogleMap, GoogleMap } from 'react-google-maps';
 import SearchBox from "react-google-maps/lib/components/places/SearchBox"
 import "./User.css";
-import markerIco from '../../assets/images/marker-ico.png'
+import io from "socket.io-client";
+
+var socket = io("http://localhost:3002");
 
 class User extends Component {
   constructor(props){
@@ -25,8 +27,10 @@ class User extends Component {
       note: event.target.value
     })
   }
+
   onSendInfo(){
-    
+   socket.emit("user-send-place",this.state);
+   //alert("test");
   }
   render() {
     return (
