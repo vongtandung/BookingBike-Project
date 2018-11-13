@@ -118,7 +118,7 @@ export default class WebService {
         return new Promise((resolve, reject) => {
             // Set timeout timer
             let timer = setTimeout(
-                () => reject(new Error('Request timed out')),
+                () => reject(('Request timed out')),
                 timeout
             );
 

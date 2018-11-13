@@ -14,8 +14,8 @@ class UserBox extends Component {
             <div className="btn green" href="">
               <div className="user-req-inf">
                 <i className="fas fa-user user-ico fa-2x"></i>
-                <span>User1</span>
-                <span>49 xa lo ha noi</span>
+                <span>User {this.props.num}</span>
+                <span className="addr">{this.props.address}</span>
               </div>
             </div>
           </div>

@@ -13,30 +13,33 @@ class UserReq extends Component {
       userNum: 0
     }
   }
-  shouldComponentUpdate() {
-    return true
-  }
+
   componentWillReceiveProps(nextProps) {
-    this.setState({
-      userList: [...this.state.userList, nextProps.userList]
-    })
+    const newUserList = nextProps.userList;
+    this.setState({ userList: newUserList })
   }
   onUserSel(index) {
     this.setState({ userSelect: index }, () => {
-      this.props.userSelect(this.state.userSelect);
-      console.log(this.state)
+      this.props.userSelect(this.state.userSelect)
     })
   }
   render() {
-    const num = 0
-    const userList = [this.state.userList[0]]
-    console.log(userList);
+    const userList = this.state.userList
     return (
       <div>
         <ul className="sidebar navbar-nav">
           <div className="scroll-box">
             <div className="scroll-box-content">
-             
+              {
+                userList.map((data, index) => {
+                  console.log(data)
+                  return (
+                    <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
+                      <UserBox num={index} address={data.addr} />
+                    </div>
+                  )
+                })
+              }
             </div>
           </div>
         </ul>

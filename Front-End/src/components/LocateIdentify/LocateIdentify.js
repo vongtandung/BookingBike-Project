@@ -12,6 +12,7 @@ class LocateIdentify extends Component {
     super();
     this.onUserNum = this.onUserNum.bind(this);
     this.onUserSelect = this.onUserSelect.bind(this);
+    this.onUserChange = this.onUserChange.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
     this.state = {
       userList: [],
@@ -21,6 +22,8 @@ class LocateIdentify extends Component {
     }
     this.webService = new WebService();
     this.io = io('http://localhost:3002');
+    this.exam = []
+
   }
   componentWillMount() {
     this.props.isLogged(true);
@@ -30,8 +33,9 @@ class LocateIdentify extends Component {
   }
   handleDataSocket() {
     const self = this
+    const userList = [...self.state.userList]
     self.io.on('server-send-place2', function (data) {
-      let userData = {
+      let userDet = {
         id: data.id,
         addr: '',
         center: {
@@ -41,11 +45,11 @@ class LocateIdentify extends Component {
       }
       self.webService.getPlace(data.place.place)
         .then(res => {
-          userData.addr = res.results[0].formatted_address;
-          userData.center = res.results[0].geometry.location;
+          userDet.addr = res.results[0].formatted_address;
+          userDet.center = res.results[0].geometry.location;
+          userList.push(userDet);
+          self.setState({ userList: userList, userNum: userList.length })
         })
-      self.state.userList.push(userData);
-      console.log(self.state)
     })
   }
   onUserNum(value) {
@@ -54,15 +58,23 @@ class LocateIdentify extends Component {
   onUserSelect(value) {
     this.setState({ userSelect: value })
   }
+  onUserChange(value) {
+    let userSelect = this.state.userSelect;
+    if (userSelect !== '') {
+      const locateChange = this.state.userList;
+      locateChange[userSelect].center = value
+      this.setState({ userList: locateChange })
+    }
+  }
   render() {
     return (
       <div>
         <LocateHeader />
         <div id="wrapper">
-          <UserReq userList={this.state.userList} />
+          <UserReq userList={this.state.userList} userSelect={this.onUserSelect} />
           <div id="content-wrapper">
             <div className="">
-              <Map />
+              <Map userList={this.state.userList} userSelect={this.state.userSelect} onUserChange={this.onUserChange} />
             </div>
           </div>
         </div>
@@ -80,19 +92,18 @@ class Map extends Component {
         lat: 10.801940,
         lng: 106.738449
       },
-      zoom: 16
+      zoom: 15
     }
   }
 
   getPoint(event) {
-    console.log(event)
+    const center = {
+      lat: event.latLng.lat(),
+      lng: event.latLng.lng()
+    }
     this.setState({
-      center: {
-        ...this.state.center,
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
-      }
-    })
+      center: center
+    }, () => { this.props.onUserChange(center) })
   }
   render() {
     return (
@@ -104,6 +115,8 @@ class Map extends Component {
           onMapClick={this.getPoint}
           center={this.state.center}
           zoom={this.state.zoom}
+          userList={this.props.userList}
+          userSelect={this.props.userSelect}
         />
       </div>
     );
@@ -115,9 +128,17 @@ const GoogleMapExample = withGoogleMap(props => (
     defaultCenter={props.center}
     defaultZoom={props.zoom}
     options={mapOptions}
-    onClick={props.onMapClick}
+    onClick={props.userSelect !== '' ? props.onMapClick : null}
   >
-    <Marker position={props.center} icon={markerIco} onClick={props.onMarkerClick} />
+    {props.userList.map((userMarker, index) => {
+      console.log(index, props.userSelect)
+      return (
+        <div key={index}>
+          <Marker position={userMarker.center} icon={markerIco} onClick={props.userSelect === index ? props.onMapClick : null} />
+        </div>
+      )
+    })
+    }
   </GoogleMap>
 ));
 
