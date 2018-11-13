@@ -7,53 +7,58 @@ import io from "socket.io-client";
 var socket = io("http://localhost:3002");
 
 class User extends Component {
-  constructor(props){
+  constructor(props) {
     super(props);
     this.onPlaceChange = this.onPlaceChange.bind(this);
     this.onNoteChange = this.onNoteChange.bind(this);
     this.onSendInfo = this.onSendInfo.bind(this);
-    this.state ={
+    this.isBooked = localStorage.getItem('isBook') ? localStorage.getItem('isBook') : false
+    this.state = {
       place: '',
-      note: ''
+      note: '',
+      isBook: false
     }
   }
-  onPlaceChange(value){
+  onPlaceChange(value) {
     this.setState({
       place: value
     })
   }
-  onNoteChange(event){
+  onNoteChange(event) {
     this.setState({
       note: event.target.value
     })
   }
 
-  onSendInfo(){
-   socket.emit("user-send-place",this.state);
-   //alert("test");
+  onSendInfo() {
+    this.setState({ isBook: true }, () => {
+      localStorage.setItem('isBook', true)
+    });
+    socket.emit("user-send-place", this.state);
+    //alert("test");
   }
   render() {
     return (
       <div className="user">
         <div className="user-input container-fluid input-box1">
           <div className="input-group input-group-md">
-          <input
-            ref = "note"
-            onBlur = {this.onNoteChange}
-            type="text"
-            className="form-control"
-            aria-label="Large"
-            aria-describedby="inputGroup-sizing-sm"
-            placeholder="Nhập ghi chú"
-          />
+            <input disabled={this.state.isBook}
+              ref="note"
+              onBlur={this.onNoteChange}
+              type="text"
+              className="form-control"
+              aria-label="Large"
+              aria-describedby="inputGroup-sizing-sm"
+              placeholder="Nhập ghi chú"
+            />
+          </div>
+          <div className="btn-custom">
+            <button disabled={this.state.isBook} type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
+          </div>
         </div>
-        <div className="btn-custom">
-        <button type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
-        </div>
-        </div>
-        <Map onPlaceChange={this.onPlaceChange}/>
+        <Map onPlaceChange={this.onPlaceChange} isBook={this.state.isBook} />
       </div>
-      
+
     );
   }
 }
@@ -86,18 +91,18 @@ class Map extends Component {
       }
     })
   }
-  onPlacesChanged(){
+  onPlacesChanged() {
     this.state.onSearchInput.focus();
     console.log(this.state.SearchBox.getPlaces())
   }
-  onSearchBox(ref){
-    this.setState({SearchBox: ref}, () => {});
+  onSearchBox(ref) {
+    this.setState({ SearchBox: ref }, () => { });
   }
-  onSearchInput(ref){
-    this.setState({onSearchInput: ref});
+  onSearchInput(ref) {
+    this.setState({ onSearchInput: ref });
   }
-  onInputChange(event){
-    this.setState({searchInput: event.target.value}, () => {
+  onInputChange(event) {
+    this.setState({ searchInput: event.target.value }, () => {
       this.props.onPlaceChange(this.state.searchInput);
     })
   }
@@ -109,13 +114,14 @@ class Map extends Component {
           loadingElement={<div style={{ height: `100%` }} />}
           containerElement={<div style={{ height: `90vh` }} />}
           mapElement={<div style={{ height: `90%` }} />}
-          onMapClick = {this.getPoint}
-          center = {this.state.center}
-          zoom = {this.state.zoom}
-          onPlacesChanged = {this.onPlacesChanged}
-          onSearchBox = {this.onSearchBox}
-          onSearchInput = {this.onSearchInput}
-          onInputChange = {this.onInputChange}
+          center={this.state.center}
+          zoom={this.state.zoom}
+          isBook={this.props.isBook}
+          onMapClick={this.getPoint}
+          onPlacesChanged={this.onPlacesChanged}
+          onSearchBox={this.onSearchBox}
+          onSearchInput={this.onSearchInput}
+          onInputChange={this.onInputChange}
         />
       </div>
     );
@@ -124,30 +130,30 @@ class Map extends Component {
 
 const GoogleMapExample = withGoogleMap(props => (
   <GoogleMap
-    defaultCenter={ props.center }
+    defaultCenter={props.center}
     defaultZoom={props.zoom}
     options={mapOptions}
     onClick={props.onMapClick}
   >
     <SearchBox
-        bounds={props.bounds}
-        controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
-        onPlacesChanged={props.onPlacesChanged}
-        ref={props.onSearchBox}
+      bounds={props.bounds}
+      controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
+      onPlacesChanged={props.onPlacesChanged}
+      ref={props.onSearchBox}
     >
-        <div className="user-input container-fluid input-box">
-          <input
-            ref = {props.onSearchInput}
-            onBlur = {props.onInputChange}
-            type="text"
-            className="form-control"
-            aria-label="Large"
-            aria-describedby="inputGroup-sizing-sm"
-            placeholder="Nhập địa chỉ..."
-            autoComplete="true"
-          />
-          </div>
-        </SearchBox>
+      <div className="user-input container-fluid input-box">
+        <input disabled={props.isBook}
+          ref={props.onSearchInput}
+          onBlur={props.onInputChange}
+          type="text"
+          className="form-control"
+          aria-label="Large"
+          aria-describedby="inputGroup-sizing-sm"
+          placeholder="Nhập địa chỉ..."
+          autoComplete="true"
+        />
+      </div>
+    </SearchBox>
   </GoogleMap>
 ));
 

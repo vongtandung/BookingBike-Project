@@ -19,5 +19,5 @@
     height: calc(100vh - 150px);
 }
 .list-user{
-
+    border-left: 0.1em solid lightblue
 }

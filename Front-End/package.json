@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "jwt-decode": "^2.2.0",
     "node-sass": "^4.10.0",
     "npx": "^10.2.0",
+    "query-string": "^6.2.0",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
     "react-google-maps": "^9.4.5",

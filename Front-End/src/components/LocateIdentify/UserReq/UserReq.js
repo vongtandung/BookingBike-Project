@@ -4,37 +4,39 @@ import UserBox from '../UserBox';
 
 
 class UserReq extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.onUserSel = this.onUserSel.bind(this);
     this.state = {
       userList: [],
-      userSelect: ''
+      userSelect: '',
+      userNum: 0
     }
   }
-  componentWillMount() {
-    for (let i = 0; i < 4; i++) {
-      this.state.userList.push(<UserBox/>)
-    }
+  shouldComponentUpdate() {
+    return true
+  }
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      userList: [...this.state.userList, nextProps.userList]
+    })
   }
   onUserSel(index) {
-    this.setState({ userSelect: index })
+    this.setState({ userSelect: index }, () => {
+      this.props.userSelect(this.state.userSelect);
+      console.log(this.state)
+    })
   }
   render() {
+    const num = 0
+    const userList = [this.state.userList[0]]
+    console.log(userList);
     return (
       <div>
         <ul className="sidebar navbar-nav">
           <div className="scroll-box">
             <div className="scroll-box-content">
-              {
-                this.state.userList.map((userList, index) => {
-                  return (
-                    <div className={this.state.userSelect === index ? "list-user" : null} key={index} onClick={() => this.onUserSel(index)}>
-                      {userList}
-                    </div>
-                  )
-                })
-              }
+             
             </div>
           </div>
         </ul>
