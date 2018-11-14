@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
 import io from 'socket.io-client';
-import LocateHeader from './LocateHeader';
+import ManagerHeader from './ManagerHeader';
 import UserReq from './UserReq';
 import WebService from '../../utilities/WebServices';
-import "./LocateIdentify.css";
+import "./Manager.css";
 import markerIco from '../../assets/images/marker-ico.png'
 
-class LocateIdentify extends Component {
+class Manager extends Component {
   constructor() {
     super();
     this.onUserNum = this.onUserNum.bind(this);
@@ -22,23 +22,20 @@ class LocateIdentify extends Component {
       isLoading: true
     }
     this.webService = new WebService();
-    this.io = null;
+    this.io = io('http://localhost:3002');
   }
   componentWillMount() {
     this.props.isLogged(true);
-
     //this.initData()
   }
   componentDidMount() {
-    if (this.io != null) {
-      this.handleDataSocket();
-    }
+    this.handleDataSocket();
   }
   initData() {
     if (this.webService.isLocate()) {
       this.props.isLogged(true);
       this.io = io('http://localhost:3002');
-      this.io.emit('location-identifier-login', function () {
+      this.io.emit('Manager-login', function () {
         return true;
       })
       return;
@@ -111,7 +108,7 @@ class LocateIdentify extends Component {
   render() {
     return (
       <div>
-        <LocateHeader />
+        <ManagerHeader />
         <div id="wrapper">
           <UserReq userList={this.state.userList} userSelect={this.onUserSelect} userRemove={this.onUserRemove} />
           <div id="content-wrapper">
@@ -220,4 +217,4 @@ const mapOptions = {
   ]
 };
 
-export default LocateIdentify;
+export default Manager;

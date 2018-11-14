@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import io from 'socket.io-client';
+import WebService from '../../utilities/WebServices';
 import markerIco from '../../assets/images/marker-ico.png'
 import "./Driver.css";
 
@@ -8,10 +10,36 @@ class Driver extends Component {
     super(props);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
+    this.webService = new WebService();
     this.state = {
       switchState: "STAND BY",
       btnState: false,
       btnStateTitle: "Bắt đầu"
+    }
+    this.io = null
+  }
+  componentWillMount() {
+    this.initData()
+  }
+  initData() {
+    if (this.webService.isLocate()) {
+      this.io = io('http://localhost:3002');
+      this.io.emit('driver-login', function () {
+        return true;
+      })
+      return;
+    } else if (this.webService.isAdmin()) {
+      this.props.history.push('/admin')
+      return;
+    } else if (this.webService.isDriver()) {
+      this.props.history.push('/driver')
+      return;
+    } else if (this.webService.isUser()) {
+      this.props.history.push('/user')
+      return;
+    } else {
+      this.props.history.push('/login')
+      return;
     }
   }
   changeSwitch() {
@@ -88,9 +116,9 @@ class Map extends Component {
           loadingElement={<div style={{ height: `100%` }} />}
           containerElement={<div style={{ height: `90vh` }} />}
           mapElement={<div style={{ height: `90%` }} />}
-          onMapClick = {this.getPoint}
-          center = {this.state.center}
-          zoom = {this.state.zoom}
+          onMapClick={this.getPoint}
+          center={this.state.center}
+          zoom={this.state.zoom}
         />
       </div>
     );
@@ -99,7 +127,7 @@ class Map extends Component {
 
 const GoogleMapExample = withGoogleMap(props => (
   <GoogleMap
-    defaultCenter={ props.center }
+    defaultCenter={props.center}
     defaultZoom={props.zoom}
     options={mapOptions}
     onClick={props.onMapClick}

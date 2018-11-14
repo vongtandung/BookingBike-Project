@@ -3,8 +3,8 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.domain = domain || 'http://localhost:3001'  // API server domain
-        this.googleDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
+        this.apiDomain = domain || 'http://localhost:3001'  // API server domain
+        this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetch = this.fetch.bind(this) // React binding stuff
     }
@@ -15,28 +15,38 @@ export default class WebService {
 
     //FOR GUEST
     //#URl: /login
-    // login(username, password) {
-    //     const action = 'login'
-    //     const param = {
-    //         action: action,
-    //         userName: username,
-    //         password: password
-    //     }
-    //     // Get a token from api server using the fetch api
-    //     return this.fetch(`${this.domain}/login`, {
-    //         method: 'POST',
-    //         body: queryString.stringify(param)
-    //     }).then(res => {
-    //         return res;
-    //     })
-    // }
+    login(username, password) {
+        const param = {
+            userName: username,
+            password: password
+        }
+        // Get a token from api server using the fetch api
+        return this.fetch(`${this.apiDomain}/login`, {
+            method: 'POST',
+            body: queryString.stringify(param)
+        }).then(res => {
+            return res;
+        })
+    }
 
     getPlace(place) {
         const param = {
             address: place,
             key: this.key
         }
-        return this.fetch(`${this.googleDomain}` + queryString.stringify(param), {
+        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
+            method: 'GET',
+        }).then(res => {
+            return res;
+        })
+    }
+
+    getPlaceRev(latlng) {
+        const param = {
+            latlng: latlng.lat + "," + latlng.lng,
+            key: this.key
+        }
+        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
             method: 'GET',
         }).then(res => {
             return res;
@@ -52,6 +62,12 @@ export default class WebService {
     }
     isUser() {
         return this.loggedIn() && this.getPermission() === 'user';
+    }
+    isDriver() {
+        return this.loggedIn() && this.getPermission() === 'driver';
+    }
+    isLocate() {
+        return this.loggedIn() && this.getPermission() === 'locate';
     }
     isAdmin() {
         return this.loggedIn() && this.getPermission() === 'admin';

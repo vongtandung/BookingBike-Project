@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 import { withRouter } from "react-router-dom";
+import WebService from '../../utilities/WebServices';
 import './Login.css'
 import IconLogin from '../../assets/images/icon-login.svg';
+
 class Login extends Component {
   constructor(props) {
-    super(props);
+    super();
   }
   componentWillMount() {
     this.props.isLogged(true);
@@ -22,12 +24,20 @@ class LoginForm extends Component {
   constructor(props) {
     super(props);
     this.handleFormLoginSubmit = this.handleFormLoginSubmit.bind(this);
+    this.webService = new WebService();
     this.state = {
       errTitle: 'Đăng nhập thất bại'
     }
   }
   handleFormLoginSubmit(e) {
+    const self = this;
     e.preventDefault();
+    self.webService.login(e.target.username.value, e.target.password.value)
+    .then(res =>{
+
+    }).catch((err) =>{
+      self.props.popup({title: self.state.errTitle, mess: ''})
+    })
   }
   render() {
     return (
@@ -40,12 +50,11 @@ class LoginForm extends Component {
             <img src={IconLogin} id="icon-login" alt="User Icon" />
           </div>
           <form onSubmit={this.handleFormLoginSubmit}>
-            <input type="text" id="username" className="fadeIn second" name="login" placeholder="Tài khoản" onChange={this.handleChange}></input>
-            <input type="text" id="password" className="fadeIn third pass" name="login" placeholder="Mật khẩu" autoComplete="off" onChange={this.handleChange}></input>
+            <input type="text" id="username" className="fadeIn second" name="login" placeholder="Tài khoản"></input>
+            <input type="text" id="password" className="fadeIn third pass" name="login" placeholder="Mật khẩu" autoComplete="off"></input>
             <input type="submit" className="fadeIn fourth" value="Đăng nhập"></input>
           </form>
           <div id="formFooter">
-            <a className="underlineHover" href="">Quên mật khẩu?</a>
           </div>
         </div>
       </div>
