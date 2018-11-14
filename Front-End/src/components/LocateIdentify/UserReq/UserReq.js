@@ -7,7 +7,6 @@ class UserReq extends Component {
   constructor(props) {
     super(props);
     this.onUserSel = this.onUserSel.bind(this);
-    this.onUserRemove = this.onUserRemove.bind(this);
     this.state = {
       userList: [],
       userSelect: '',
@@ -24,12 +23,6 @@ class UserReq extends Component {
       this.props.userSelect(this.state.userSelect)
     })
   }
-  onUserRemove(index){
-    this.setState({ userSelect: '' }, () => {
-      this.props.userRemove(index)
-      this.props.userSelect(this.state.userSelect)
-    })
-  }
   render() {
     const userList = this.state.userList
     return (
@@ -42,15 +35,12 @@ class UserReq extends Component {
                   console.log(data)
                   return (
                     <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
-                      <UserBox num={index} address={data.addrCur} />
+                      <UserBox num={index} address={data.addr} />
                     </div>
                   )
                 })
               }
             </div>
-          </div>
-          <div className="btn-locate">
-            <button type="button" className="btn btn-success btn-lg" onClick={() => this.onUserRemove(this.state.userSelect)}><span>Gửi đi</span></button>
           </div>
         </ul>
       </div>

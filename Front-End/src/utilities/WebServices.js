@@ -3,8 +3,8 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://localhost:3001'  // API server domain
-        this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
+        this.domain = domain || 'http://localhost:3001'  // API server domain
+        this.googleDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetch = this.fetch.bind(this) // React binding stuff
     }
@@ -23,7 +23,7 @@ export default class WebService {
     //         password: password
     //     }
     //     // Get a token from api server using the fetch api
-    //     return this.fetch(`${this.apiDomain}/login`, {
+    //     return this.fetch(`${this.domain}/login`, {
     //         method: 'POST',
     //         body: queryString.stringify(param)
     //     }).then(res => {
@@ -36,19 +36,7 @@ export default class WebService {
             address: place,
             key: this.key
         }
-        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
-            method: 'GET',
-        }).then(res => {
-            return res;
-        })
-    }
-
-    getPlaceRev(latlng) {
-        const param = {
-            latlng: latlng.lat + "," + latlng.lng,
-            key: this.key
-        }
-        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
+        return this.fetch(`${this.googleDomain}` + queryString.stringify(param), {
             method: 'GET',
         }).then(res => {
             return res;
