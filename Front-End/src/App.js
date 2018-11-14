@@ -7,7 +7,7 @@ import Login from './components/Login';
 import User from './components/User';
 import Driver from './components/Driver';
 import LocateIdentify from './components/LocateIdentify';
-
+import Manager from './components/Manager';
 import './App.css';
 
 class App extends Component {
@@ -32,11 +32,15 @@ class App extends Component {
             <Route path="/locate"
               render={(props) => <LocateIdentify {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
-            />    
+            />
+            <Route path="/admin"
+              render={(props) => <Manager {...props} popup={this.showPopup}
+                isLogged={this.hideLayout} />}
+            />
             <Route path="/login"
               render={(props) => <Login {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
-            />            
+            />
             <Route exact component={User} />
           </Switch>
           {this.state.isLogged ? null : <Footer />}

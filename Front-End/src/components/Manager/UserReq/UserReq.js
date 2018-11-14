@@ -37,6 +37,7 @@ class UserReq extends Component {
         <ul className="sidebar navbar-nav">
           <div className="scroll-box">
             <div className="scroll-box-content">
+            <UserBox />
               {
                 userList.map((data, index) => {
                   console.log(data)

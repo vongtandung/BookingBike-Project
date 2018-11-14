@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withRouter, Link } from "react-router-dom";
 
-class LocateHeader extends Component {
+class ManagerHeader extends Component {
   constructor(props) {
     super(props);
   }
@@ -40,4 +40,4 @@ class LocateHeader extends Component {
   }
 }
 
-export default withRouter(LocateHeader);
+export default withRouter(ManagerHeader);
