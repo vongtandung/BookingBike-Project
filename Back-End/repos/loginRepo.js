@@ -4,7 +4,6 @@ var db = require('../fn/mysql-db');
 
 
 exports.login = loginEntity => {
-    console.log(loginEntity);
     var md5_pwd = md5(loginEntity.pwd);
     var sql = `select * from user where UserName ='${loginEntity.user}' and PassWord = '${md5_pwd}' `;
     return db.load(sql);
