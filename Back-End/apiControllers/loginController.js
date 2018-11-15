@@ -8,7 +8,6 @@ var router = express.Router();
 router.post('/',(req,res)=> {
     loginRepo.login(req.body)
     .then(rows => {
-        console.log(rows.length)
         if (rows.length > 0) {
             var userEntity = rows[0];
             var acToken = authRepo.generateAccessToken(userEntity);
@@ -17,6 +16,7 @@ router.post('/',(req,res)=> {
                 .then(value => {
                     res.json({
                         auth: true,
+                        ID: userEntity.id,
                         Name: userEntity.Name,
                         PhoneNumber: userEntity.PhoneNumber,
                         Permission: userEntity.Permission,
