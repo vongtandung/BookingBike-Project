@@ -3,7 +3,7 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://172.16.19.190:3001/api'  // API server domain
+        this.apiDomain = domain || 'http://localhost:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff

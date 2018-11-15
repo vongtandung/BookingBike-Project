@@ -24,11 +24,11 @@ class Header extends Component {
           <div className="sides">
             <div className="menu">
               <div>
-                <button class="btn btn-secondary" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                  Dropdown button
+                <button className="btn btn-danger dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="far fa-user"></i> {this.webService.getUserName()}
                 </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                  <a class="dropdown-item" href="#" onClick={this.logOut}>Đăng xuất</a>
+                <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <a className="dropdown-item" href="#" onClick={this.logOut}>Đăng xuất</a>
                 </div>
               </div>
             </div>

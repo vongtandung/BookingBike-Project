@@ -16,7 +16,6 @@ class UserReq extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    console.log(nextProps)
     const newUserList = nextProps.userList;
     this.setState({ userList: newUserList })
   }
@@ -25,11 +24,13 @@ class UserReq extends Component {
       this.props.userSelect(this.state.userSelect)
     })
   }
-  onUserRemove(index){
-    this.setState({ userSelect: '' }, () => {
-      this.props.userRemove(index)
-      this.props.userSelect(this.state.userSelect)
-    })
+  onUserRemove(index) {
+    if (index !== undefined && index !== null & index !== '') {
+      this.setState({ userSelect: '' }, () => {
+        this.props.userRemove(index)
+        this.props.userSelect(this.state.userSelect)
+      })
+    }
   }
   render() {
     const userList = this.state.userList

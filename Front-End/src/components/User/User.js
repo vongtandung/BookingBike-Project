@@ -36,7 +36,7 @@ class User extends Component {
       return;
     } else if (this.webService.isUser()) {
       this.props.isLogged(false);
-      self.io = io('http://172.16.19.190:3002', {
+      self.io = io('http://localhost:3002', {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),

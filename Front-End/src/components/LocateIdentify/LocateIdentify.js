@@ -22,6 +22,7 @@ class LocateIdentify extends Component {
       isLoading: true
     }
     this.webService = new WebService();
+    this.userList = [];
     this.io = null;
   }
   componentWillMount() {
@@ -37,7 +38,7 @@ class LocateIdentify extends Component {
     const self = this;
     if (this.webService.isLocate()) {
       this.props.isLogged(true);
-      self.io = io('http://172.16.19.190:3002', {
+      self.io = io('http://localhost:3002', {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
@@ -61,9 +62,10 @@ class LocateIdentify extends Component {
   }
   handleDataSocket() {
     const self = this
-    const userList = [...self.state.userList]
+    console.log(this.state.userList)
+    let userList = this.state.userList
+    console.log(this.state.userList)
     self.io.on('server-send-place-locate', function (data) {
-      console.log(data);
       let userDet = {
         id: data.id,
         name: data.name,
@@ -132,7 +134,7 @@ class LocateIdentify extends Component {
     self.setState({
       userList: userList,
     }, () => {
-      console.log(this.state.userList)
+      console.log(self.state.userList)
       self.io.emit('locate-send-result', result)
     })
   }

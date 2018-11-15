@@ -42,7 +42,7 @@ class Driver extends Component {
     } else if (this.webService.isDriver()) {
       this.props.isLogged(false)
       console.log('ok')
-      self.io = io('http://172.16.19.190:3002', {
+      self.io = io('http://localhost:3002', {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
