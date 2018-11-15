@@ -1,6 +1,17 @@
 import React, { Component } from "react";
+import { withRouter } from "react-router-dom";
+import WebService from '../../utilities/WebServices';
 import "./Header.css";
 class Header extends Component {
+  constructor(props){
+    super();
+    this.logOut = this.logOut.bind(this);
+    this.webService = new WebService();
+  }
+  logOut(){
+    this.webService.logout();
+    this.props.history.push('/login')
+  }
   render() {
     return (
       <header>
@@ -11,10 +22,16 @@ class Header extends Component {
             </a>
           </div>
           <div className="sides">
-            {" "}
-            <a href="#" className="menu">
-              -
-            </a>
+            <div className="menu">
+              <div>
+                <button class="btn btn-secondary" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Dropdown button
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <a class="dropdown-item" href="#" onClick={this.logOut}>Đăng xuất</a>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="info">
             <h1>EASY TO TAKE - EASY TO GO</h1>
@@ -28,4 +45,4 @@ class Header extends Component {
   }
 }
 
-export default Header;
+export default withRouter(Header);

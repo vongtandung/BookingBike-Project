@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
 import io from 'socket.io-client';
-import ManagerHeader from './ManagerHeader';
+import HeaderManager from '../HeaderManager';
 import UserReq from './UserReq';
 import WebService from '../../utilities/WebServices';
 import "./Manager.css";
@@ -108,7 +108,7 @@ class Manager extends Component {
   render() {
     return (
       <div>
-        <ManagerHeader />
+        <HeaderManager />
         <div id="wrapper">
           <UserReq userList={this.state.userList} userSelect={this.onUserSelect} userRemove={this.onUserRemove} />
           <div id="content-wrapper">

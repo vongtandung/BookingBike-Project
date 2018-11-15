@@ -1,15 +1,15 @@
 import React, { Component } from 'react';
 import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
 import io from 'socket.io-client';
-import LocateHeader from './LocateHeader';
+import HeaderManager from '../HeaderManager';
 import UserReq from './UserReq';
 import WebService from '../../utilities/WebServices';
 import "./LocateIdentify.css";
 import markerIco from '../../assets/images/marker-ico.png'
 
 class LocateIdentify extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.onUserNum = this.onUserNum.bind(this);
     this.onUserSelect = this.onUserSelect.bind(this);
     this.onUserChange = this.onUserChange.bind(this);
@@ -25,9 +25,8 @@ class LocateIdentify extends Component {
     this.io = null;
   }
   componentWillMount() {
-    this.props.isLogged(true);
-
-    //this.initData()
+    this.initData();
+    this.handleDataSocket();
   }
   componentDidMount() {
     if (this.io != null) {
@@ -35,12 +34,16 @@ class LocateIdentify extends Component {
     }
   }
   initData() {
+    const self = this;
     if (this.webService.isLocate()) {
       this.props.isLogged(true);
-      this.io = io('http://localhost:3002');
-      this.io.emit('location-identifier-login', function () {
-        return true;
-      })
+      self.io = io('http://172.16.19.190:3002', {
+        query: {
+          permission: self.webService.getPermission(),
+          name: self.webService.getUserName(),
+          phone: self.webService.getPhoneNum()
+        }
+      });
       return;
     } else if (this.webService.isAdmin()) {
       this.props.history.push('/admin')
@@ -59,10 +62,14 @@ class LocateIdentify extends Component {
   handleDataSocket() {
     const self = this
     const userList = [...self.state.userList]
-    self.io.on('server-send-place2', function (data) {
+    self.io.on('server-send-place-locate', function (data) {
+      console.log(data);
       let userDet = {
         id: data.id,
+        name: data.name,
+        phone: data.phone,
         addrCur: data.place.place,
+        note: data.place.note,
         addrAutoRev: '',
         addrRev: '',
         center: {
@@ -75,12 +82,14 @@ class LocateIdentify extends Component {
           userDet.addrAutoRev = res.results[0].formatted_address;
           userDet.center = res.results[0].geometry.location;
           userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length })
+          self.setState({ userList: userList, userNum: userList.length }, () =>{
+          })
         }).catch(() => {
           userDet.center.lat = 10.801940;
           userDet.center.lng = 106.738449;
           userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length })
+          self.setState({ userList: userList, userNum: userList.length }, () =>{
+          })
         })
     })
   }
@@ -100,18 +109,37 @@ class LocateIdentify extends Component {
     }
   }
   onUserRemove(user) {
+    const self = this
     let userList = this.state.userList
+    let userSel = this.state.userList
     userList = userList.filter((_, index) => {
       return index !== user
     })
-    this.setState({
+    userSel = userSel.filter((_, index) => {
+      return index === user
+    })
+    let result = {
+      name: userSel[0].name,
+      phone: userSel[0].phone,
+      addr: {
+        addrCur: userSel[0].addrCur,
+        center: {
+          lat: userSel[0].center.lat,
+          lng: userSel[0].center.lng
+        }
+      }
+    }
+    self.setState({
       userList: userList,
+    }, () => {
+      console.log(this.state.userList)
+      self.io.emit('locate-send-result', result)
     })
   }
   render() {
     return (
       <div>
-        <LocateHeader />
+        <HeaderManager />
         <div id="wrapper">
           <UserReq userList={this.state.userList} userSelect={this.onUserSelect} userRemove={this.onUserRemove} />
           <div id="content-wrapper">

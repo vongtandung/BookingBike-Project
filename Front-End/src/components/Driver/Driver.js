@@ -8,31 +8,47 @@ import "./Driver.css";
 class Driver extends Component {
   constructor(props) {
     super(props);
+    this.handleDataSocket = this.handleDataSocket.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
     this.webService = new WebService();
     this.state = {
       switchState: "STAND BY",
       btnState: false,
-      btnStateTitle: "Bắt đầu"
+      btnStateTitle: "Bắt đầu",
+      isProcess: false,
+      userDet: {
+        addr: '',
+        name: '',
+        phone: ''
+      }
     }
     this.io = null
   }
   componentWillMount() {
     this.initData()
   }
+  componentDidMount() {
+    this.handleDataSocket();
+  }
   initData() {
+    const self = this;
     if (this.webService.isLocate()) {
-      this.io = io('http://localhost:3002');
-      this.io.emit('driver-login', function () {
-        return true;
-      })
+      this.props.history.push('/locate')
       return;
     } else if (this.webService.isAdmin()) {
       this.props.history.push('/admin')
       return;
     } else if (this.webService.isDriver()) {
-      this.props.history.push('/driver')
+      this.props.isLogged(false)
+      console.log('ok')
+      self.io = io('http://172.16.19.190:3002', {
+        query: {
+          permission: self.webService.getPermission(),
+          name: self.webService.getUserName(),
+          phone: self.webService.getPhoneNum()
+        }
+      });
       return;
     } else if (this.webService.isUser()) {
       this.props.history.push('/user')
@@ -41,6 +57,19 @@ class Driver extends Component {
       this.props.history.push('/login')
       return;
     }
+  }
+  handleDataSocket() {
+    const self = this
+    self.io.on('server-send-request-driver', function (data) {
+      console.log(data);
+      // if (data != undefined && data != null & self.state.isProcess != true) {
+      //   self.setState({
+      //     addr: data.addr,
+      //     name: data.name,
+      //     phone: data.phone
+      //   })
+      // }
+    })
   }
   changeSwitch() {
     if (this.refs.switch.checked) {
@@ -106,7 +135,7 @@ class Map extends Component {
         lat: event.latLng.lat(),
         lng: event.latLng.lng()
       }
-    }, () => console.log(this.state))
+    })
   }
   render() {
 

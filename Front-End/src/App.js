@@ -11,6 +11,7 @@ import LocateIdentify from './components/LocateIdentify';
 import Manager from './components/Manager';
 import './App.css';
 
+
 class App extends Component {
   constructor(props) {
     super(props);
@@ -55,8 +56,14 @@ class App extends Component {
         <div className="App">
           {this.state.isLogged ? null : <Header />}
           <Switch>
-            <Route path="/user" component={User} />
-            <Route path="/driver" component={Driver} />
+            <Route path="/user"
+              render={(props) => <User {...props} popup={this.showPopup}
+                isLogged={this.hideLayout} />}
+            />
+            <Route path="/driver"
+              render={(props) => <Driver {...props} popup={this.showPopup}
+                isLogged={this.hideLayout} />}
+            />
             <Route path="/locate"
               render={(props) => <LocateIdentify {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}

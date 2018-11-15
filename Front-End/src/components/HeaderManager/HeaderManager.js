@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import { withRouter, Link } from "react-router-dom";
 
-class ManagerHeader extends Component {
+class HeaderManager extends Component {
   constructor(props) {
     super(props);
   }
+  
   render() {
     return (
       <div>
@@ -40,4 +41,4 @@ class ManagerHeader extends Component {
   }
 }
 
-export default withRouter(ManagerHeader);
+export default withRouter(HeaderManager);

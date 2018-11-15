@@ -7,9 +7,26 @@ import IconLogin from '../../assets/images/icon-login.svg';
 class Login extends Component {
   constructor(props) {
     super();
+    this.webService = new WebService();
   }
   componentWillMount() {
     this.props.isLogged(true);
+    this.initData();
+  }
+  initData() {
+    if (this.webService.isLocate()) {
+      this.props.history.push('/locate')
+      return;
+    } else if (this.webService.isAdmin()) {
+      this.props.history.push('/admin')
+      return;
+    } else if (this.webService.isDriver()) {
+      this.props.history.push('/driver')
+      return;
+    } else if (this.webService.isUser()) {
+      this.props.history.push('/user')
+      return;
+    }
   }
   render() {
     return (
@@ -34,7 +51,18 @@ class LoginForm extends Component {
     e.preventDefault();
     self.webService.login(e.target.username.value, e.target.password.value)
     .then(res =>{
-
+      if (res) {
+        self.webService.setInfo(res.ID, res.Name, res.PhoneNumber, res.Permission, res.access_token);
+        if (res.Permission === 1){
+          self.props.history.push('/user');
+        } else if (res.Permission === 2){
+          self.props.history.push('/locate');
+        } else if (res.Permission === 3){
+          self.props.history.push('/admin');
+        }  else if (res.Permission === 4){
+          self.props.history.push('/driver');
+        }
+      }
     }).catch((err) =>{
       self.props.popup({title: self.state.errTitle, mess: ''})
     })

@@ -16,6 +16,7 @@ class UserReq extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    console.log(nextProps)
     const newUserList = nextProps.userList;
     this.setState({ userList: newUserList })
   }
@@ -39,7 +40,6 @@ class UserReq extends Component {
             <div className="scroll-box-content">
               {
                 userList.map((data, index) => {
-                  console.log(data)
                   return (
                     <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
                       <UserBox num={index} address={data.addrCur} />

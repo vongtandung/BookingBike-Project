@@ -3,10 +3,12 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://localhost:3001'  // API server domain
+        this.apiDomain = domain || 'http://172.16.19.190:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
-        this.fetch = this.fetch.bind(this) // React binding stuff
+        this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff
+        this.fetchDataMap = this.fetchDataMap.bind(this) // React binding stuff
+
     }
 
     ///////////////////////////////////////////////          API FUNCTION          //////////////////////////////////////////////////////
@@ -17,14 +19,16 @@ export default class WebService {
     //#URl: /login
     login(username, password) {
         const param = {
-            userName: username,
-            password: password
+            user: username,
+            pwd: password
         }
         // Get a token from api server using the fetch api
-        return this.fetch(`${this.apiDomain}/login`, {
+        return this.fetchDataApi(`${this.apiDomain}/login`, {
             method: 'POST',
-            body: queryString.stringify(param)
+            json: true,
+            body: JSON.stringify(param),
         }).then(res => {
+            console.log(res)
             return res;
         })
     }
@@ -34,7 +38,7 @@ export default class WebService {
             address: place,
             key: this.key
         }
-        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
+        return this.fetchDataMap(`${this.mapDomain}` + queryString.stringify(param), {
             method: 'GET',
         }).then(res => {
             return res;
@@ -46,7 +50,7 @@ export default class WebService {
             latlng: latlng.lat + "," + latlng.lng,
             key: this.key
         }
-        return this.fetch(`${this.mapDomain}` + queryString.stringify(param), {
+        return this.fetchDataMap(`${this.mapDomain}` + queryString.stringify(param), {
             method: 'GET',
         }).then(res => {
             return res;
@@ -61,16 +65,16 @@ export default class WebService {
         return !!token && !this.isTokenExpired(token) // handwaiving here
     }
     isUser() {
-        return this.loggedIn() && this.getPermission() === 'user';
+        return this.loggedIn() && this.getPermission() === '1';
     }
     isDriver() {
-        return this.loggedIn() && this.getPermission() === 'driver';
+        return this.loggedIn() && this.getPermission() === '4';
     }
     isLocate() {
-        return this.loggedIn() && this.getPermission() === 'locate';
+        return this.loggedIn() && this.getPermission() === '2';
     }
     isAdmin() {
-        return this.loggedIn() && this.getPermission() === 'admin';
+        return this.loggedIn() && this.getPermission() === '3';
     }
     isTokenExpired(token) {
         try {
@@ -86,11 +90,13 @@ export default class WebService {
         }
     }
 
-    setInfo(idToken, username, permisstion) {
+    setInfo(id, username, phone, permission, token) {
         // Saves user token to localStorage
-        localStorage.setItem('idToken', idToken);
+        localStorage.setItem('idToken', token);
+        localStorage.setItem('idUser', id);
         localStorage.setItem('userName', username);
-        localStorage.setItem('permiss', permisstion);
+        localStorage.setItem('userPhone', phone);
+        localStorage.setItem('permiss', permission);
     }
 
     getToken() {
@@ -106,27 +112,23 @@ export default class WebService {
         return localStorage.getItem('permiss');
     }
 
+    getPhoneNum() {
+        return localStorage.getItem('userPhone');
+    }
+
     logout() {
         // Clear user token and profile data from localStorage
+        localStorage.removeItem('idUser');
         localStorage.removeItem('idToken');
         localStorage.removeItem('userName');
+        localStorage.removeItem('userPhone');
         localStorage.removeItem('permiss');
     }
 
 
     //Function config fetch data from server API -----------------------------------------
-    fetch(url, options) {
+    fetchDataApi(url, options) {
         const timeout = 30000;
-        // performs api calls sending the required authentication headers
-        const headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type, Accept, X-Requested-With, remember-me',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        const header = new Headers(headers)
         // return fetch(url, {
         //     header,
         //     ...options
@@ -139,15 +141,45 @@ export default class WebService {
             );
 
             fetch(url, {
-                header,
-                ...options
+                ...options,
+                headers:{
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
             }).then(this.checkStatus).then(
-                response => { resolve(response.json()) },
+                response => { 
+                    resolve(response.json()) },
                 err => reject(err)
-            ).finally(() => clearTimeout(timer));
+            ).catch(error => {
+                reject(error)
+            }).finally(() => clearTimeout(timer));
         })
     }
 
+    fetchDataMap(url, options) {
+        const timeout = 30000;
+        // return fetch(url, {
+        //     header,
+        //     ...options
+        // }).then(this.checkStatus).then(response => response.json());
+        return new Promise((resolve, reject) => {
+            // Set timeout timer
+            let timer = setTimeout(
+                () => reject(('Request timed out')),
+                timeout
+            );
+
+            fetch(url, {
+                ...options,
+            }).then(this.checkStatus).then(
+                response => { 
+                    resolve(response.json()) },
+                err => reject(err)
+            ).catch(error => {
+                reject(error)
+            }).finally(() => clearTimeout(timer));
+        })
+    }
 
     checkStatus(response) {
         // raises an error in case response status is not a success

@@ -3,8 +3,7 @@ import { withGoogleMap, GoogleMap } from 'react-google-maps';
 import SearchBox from "react-google-maps/lib/components/places/SearchBox"
 import "./User.css";
 import io from "socket.io-client";
-
-var socket = io("http://localhost:3002");
+import WebService from "../../utilities/WebServices";
 
 class User extends Component {
   constructor(props) {
@@ -12,11 +11,42 @@ class User extends Component {
     this.onPlaceChange = this.onPlaceChange.bind(this);
     this.onNoteChange = this.onNoteChange.bind(this);
     this.onSendInfo = this.onSendInfo.bind(this);
-    this.isBooked = localStorage.getItem('isBook') ? localStorage.getItem('isBook') : false
+    this.isBooked = localStorage.getItem('isBook') ? localStorage.getItem('isBook') : false;
+    this.webService = new WebService();
     this.state = {
       place: '',
       note: '',
       isBook: false
+    }
+    this.io = null;
+  }
+  componentWillMount() {
+    this.initData();
+  }
+  initData() {
+    const self = this;
+    if (this.webService.isLocate()) {
+      this.props.history.push('/locate')
+      return;
+    } else if (this.webService.isAdmin()) {
+      this.props.history.push('/admin')
+      return;
+    } else if (this.webService.isDriver()) {
+      this.props.history.push('/driver')
+      return;
+    } else if (this.webService.isUser()) {
+      this.props.isLogged(false);
+      self.io = io('http://172.16.19.190:3002', {
+        query: {
+          permission: self.webService.getPermission(),
+          name: self.webService.getUserName(),
+          phone: self.webService.getPhoneNum()
+        }
+      });
+      return;
+    } else {
+      this.props.history.push('/login')
+      return;
     }
   }
   onPlaceChange(value) {
@@ -31,10 +61,14 @@ class User extends Component {
   }
 
   onSendInfo() {
+    const userInf = {
+      place: this.state.place,
+      note: this.state.note,
+    }
     this.setState({ isBook: true }, () => {
       localStorage.setItem('isBook', true)
     });
-    socket.emit("user-send-place", this.state);
+    this.io.emit('user-send-place', userInf)
     //alert("test");
   }
   render() {
