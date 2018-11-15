@@ -6,12 +6,7 @@ var authRepo = require('../repos/authRepo');
 var router = express.Router();
 
 router.post('/',(req,res)=> {
-    req.body = {
-	 	user: 'Tataro',
-	 	pwd: '123456'
-     }
-
-   loginRepo.login(req.body)
+    loginRepo.login(req.body)
     .then(rows => {
         console.log(rows.length)
         if (rows.length > 0) {
@@ -22,9 +17,10 @@ router.post('/',(req,res)=> {
                 .then(value => {
                     res.json({
                         auth: true,
-                        user: userEntity,
-                        access_token: acToken,
-                        refresh_token: rfToken
+                        Name: userEntity.Name,
+                        PhoneNumber: userEntity.PhoneNumber,
+                        Permission: userEntity.Permission,
+                        access_token: acToken
                     })
                 })
                 .catch(err => {
