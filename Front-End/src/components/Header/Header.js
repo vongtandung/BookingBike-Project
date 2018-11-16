@@ -25,7 +25,7 @@ class Header extends Component {
             <div className="menu">
               <div>
                 <button className="btn btn-danger dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="far fa-user"></i> {this.webService.getUserName()}
+                <i className="far fa-user"></i> {this.webService.getUserName()}
                 </button>
                 <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
                   <a className="dropdown-item" href="#" onClick={this.logOut}>Đăng xuất</a>

@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { BrowserRouter as Router, Route, Switch, Redirect } from "react-router-dom";
 import SweetAlert from 'sweetalert2-react';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ErrorPage from './components/ErrorPage';
 import Login from './components/Login';
 import User from './components/User';
 import Driver from './components/Driver';
@@ -56,27 +57,28 @@ class App extends Component {
         <div className="App">
           {this.state.isLogged ? null : <Header />}
           <Switch>
-            <Route path="/user"
+            <Route exact path="/" render={() => <Redirect to="/login" />} />
+            <Route exact path="/user"
               render={(props) => <User {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
             />
-            <Route path="/driver"
+            <Route exact path="/driver"
               render={(props) => <Driver {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
             />
-            <Route path="/locate"
+            <Route exact path="/locate"
               render={(props) => <LocateIdentify {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
             />
-            <Route path="/admin"
+            <Route exact path="/admin"
               render={(props) => <Manager {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
             />
-            <Route path="/login"
+            <Route exact path="/login"
               render={(props) => <Login {...props} popup={this.showPopup}
                 isLogged={this.hideLayout} />}
             />
-            <Route exact component={User} />
+            <Route exact render={(props) => <ErrorPage {...props} isLogged={this.hideLayout} />} />
           </Switch>
           {this.state.isLogged ? null : <Footer />}
           <SweetAlert

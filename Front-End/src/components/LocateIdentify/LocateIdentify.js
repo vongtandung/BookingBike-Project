@@ -19,19 +19,24 @@ class LocateIdentify extends Component {
       userList: [],
       userSelect: '',
       userNum: 0,
-      isLoading: true
+      isLoading: false
     }
     this.webService = new WebService();
     this.userList = [];
+    this.count = 0;
     this.io = null;
   }
   componentWillMount() {
     this.initData();
-    this.handleDataSocket();
   }
   componentDidMount() {
     if (this.io != null) {
       this.handleDataSocket();
+    }
+  }
+  componentWillUnmount() {
+    if (this.io != null){
+    this.io.close()
     }
   }
   initData() {
@@ -62,10 +67,8 @@ class LocateIdentify extends Component {
   }
   handleDataSocket() {
     const self = this
-    console.log(this.state.userList)
-    let userList = this.state.userList
-    console.log(this.state.userList)
     self.io.on('server-send-place-locate', function (data) {
+      console.log(data)
       let userDet = {
         id: data.id,
         name: data.name,
@@ -83,14 +86,14 @@ class LocateIdentify extends Component {
         .then(res => {
           userDet.addrAutoRev = res.results[0].formatted_address;
           userDet.center = res.results[0].geometry.location;
-          userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length }, () =>{
+          self.userList.push(userDet);
+          self.setState({ userList: self.userList, userNum: self.userList.length }, () =>{
           })
         }).catch(() => {
           userDet.center.lat = 10.801940;
           userDet.center.lng = 106.738449;
-          userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length }, () =>{
+          self.userList.push(userDet);
+          self.setState({ userList: self.userList, userNum: self.userList.length }, () =>{
           })
         })
     })
@@ -134,7 +137,7 @@ class LocateIdentify extends Component {
     self.setState({
       userList: userList,
     }, () => {
-      console.log(self.state.userList)
+      self.userList = self.state.userList
       self.io.emit('locate-send-result', result)
     })
   }

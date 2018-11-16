@@ -1,14 +1,21 @@
 import React, { Component } from "react";
 import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import SweetAlert from 'sweetalert2-react';
 import io from 'socket.io-client';
 import WebService from '../../utilities/WebServices';
 import markerIco from '../../assets/images/marker-ico.png'
 import "./Driver.css";
+import User from '../User'
+import { renderToStaticMarkup } from 'react-dom/server';
+
 
 class Driver extends Component {
   constructor(props) {
     super(props);
     this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.onTimeOutReq = this.onTimeOutReq.bind(this);
+    this.onCancelPopup = this.onCancelPopup.bind(this);
+    this.onClosePopup = this.onClosePopup.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
     this.webService = new WebService();
@@ -17,6 +24,9 @@ class Driver extends Component {
       btnState: false,
       btnStateTitle: "Bắt đầu",
       isProcess: false,
+      popupReq: {
+        show: false
+      },
       userDet: {
         addr: '',
         name: '',
@@ -26,10 +36,24 @@ class Driver extends Component {
     this.io = null
   }
   componentWillMount() {
+    this.setState({
+      popupReq: {
+        ...this.state.popupReq,
+        show: true
+      }
+    })
     this.initData()
   }
   componentDidMount() {
-    this.handleDataSocket();
+    if (this.io != null) {
+      this.onTimeOutReq();
+      this.handleDataSocket();
+    }
+  }
+  componentWillUnmount() {
+    if (this.io != null){
+    this.io.close()
+    }
   }
   initData() {
     const self = this;
@@ -39,9 +63,11 @@ class Driver extends Component {
     } else if (this.webService.isAdmin()) {
       this.props.history.push('/admin')
       return;
+    } else if (this.webService.isUser()) {
+      this.props.history.push('/user')
+      return;
     } else if (this.webService.isDriver()) {
-      this.props.isLogged(false)
-      console.log('ok')
+      self.props.isLogged(false)
       self.io = io('http://localhost:3002', {
         query: {
           permission: self.webService.getPermission(),
@@ -49,9 +75,6 @@ class Driver extends Component {
           phone: self.webService.getPhoneNum()
         }
       });
-      return;
-    } else if (this.webService.isUser()) {
-      this.props.history.push('/user')
       return;
     } else {
       this.props.history.push('/login')
@@ -69,6 +92,24 @@ class Driver extends Component {
       //     phone: data.phone
       //   })
       // }
+    })
+  }
+  onTimeOutReq() {
+    if (this.state.popupReq.show === true) {
+      setTimeout(() => {
+        this.onClosePopup()
+      }, 10000);
+    }
+  }
+  onCancelPopup() {
+    console.log('ok')
+  }
+  onClosePopup() {
+    this.setState({
+      popupReq: {
+        ...this.state.popupReq,
+        show: false
+      }
     })
   }
   changeSwitch() {
@@ -108,6 +149,18 @@ class Driver extends Component {
             </button>
           </div>
         </div>
+        <SweetAlert
+          show={this.state.popupReq.show}
+          title='<strong>HTML <u>example</u></strong>'
+          text='<strong>HTML <u>example</u></strong>'
+
+          onConfirm={true}
+          onCancel={this.onCancelPopup}
+          showCancelButton={true}
+        // imageUrl="https://unsplash.it/400/200"
+        // imageWidth="400"
+        // imageHeight="200"
+        />
         <Map />
       </div>
     );

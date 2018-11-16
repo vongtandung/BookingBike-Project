@@ -23,6 +23,11 @@ class User extends Component {
   componentWillMount() {
     this.initData();
   }
+  componentWillUnmount() {
+    if (this.io != null){
+    this.io.close()
+    }
+  }
   initData() {
     const self = this;
     if (this.webService.isLocate()) {

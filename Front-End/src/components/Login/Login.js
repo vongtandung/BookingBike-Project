@@ -15,16 +15,16 @@ class Login extends Component {
   }
   initData() {
     if (this.webService.isLocate()) {
-      this.props.history.push('/locate')
+      this.props.history.replace('/locate')
       return;
     } else if (this.webService.isAdmin()) {
-      this.props.history.push('/admin')
+      this.props.history.replace('/admin')
       return;
     } else if (this.webService.isDriver()) {
-      this.props.history.push('/driver')
+      this.props.history.replace('/driver')
       return;
     } else if (this.webService.isUser()) {
-      this.props.history.push('/user')
+      this.props.history.replace('/user')
       return;
     }
   }
