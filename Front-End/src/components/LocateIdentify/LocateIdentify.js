@@ -43,7 +43,7 @@ class LocateIdentify extends Component {
     const self = this;
     if (this.webService.isLocate()) {
       this.props.isLogged(true);
-      self.io = io('http://localhost:3002', {
+      self.io = io(this.webService.sokDomain, {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
@@ -71,10 +71,10 @@ class LocateIdentify extends Component {
       console.log(data)
       let userDet = {
         id: data.id,
-        name: data.name,
-        phone: data.phone,
-        addrCur: data.place.place,
-        note: data.place.note,
+        name: data.data.name,
+        phone: data.data.phone,
+        addrCur: data.data.place,
+        note: data.data.note,
         addrAutoRev: '',
         addrRev: '',
         center: {
@@ -82,7 +82,7 @@ class LocateIdentify extends Component {
           lng: ''
         }
       }
-      self.webService.getPlace(data.place.place)
+      self.webService.getPlace(data.data.place)
         .then(res => {
           userDet.addrAutoRev = res.results[0].formatted_address;
           userDet.center = res.results[0].geometry.location;

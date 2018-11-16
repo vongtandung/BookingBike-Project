@@ -3,8 +3,9 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://localhost:3001/api'  // API server domain
+        this.apiDomain = domain || 'http://192.168.43.43:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
+        this.sokDomain = 'http://192.168.43.43:3002'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff
         this.fetchDataMap = this.fetchDataMap.bind(this) // React binding stuff
@@ -102,6 +103,10 @@ export default class WebService {
     getToken() {
         // Retrieves the user token from localStorage
         return localStorage.getItem('idToken');
+    }
+
+    getIdUser() {
+        return localStorage.getItem('idUser')
     }
 
     getUserName() {

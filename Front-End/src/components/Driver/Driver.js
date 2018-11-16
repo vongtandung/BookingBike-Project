@@ -5,15 +5,14 @@ import io from 'socket.io-client';
 import WebService from '../../utilities/WebServices';
 import markerIco from '../../assets/images/marker-ico.png'
 import "./Driver.css";
-import User from '../User'
-import { renderToStaticMarkup } from 'react-dom/server';
-
+// declare let navigator
 
 class Driver extends Component {
   constructor(props) {
     super(props);
     this.handleDataSocket = this.handleDataSocket.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
+    this.onConfirmPopup = this.onConfirmPopup.bind(this);
     this.onCancelPopup = this.onCancelPopup.bind(this);
     this.onClosePopup = this.onClosePopup.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
@@ -25,7 +24,9 @@ class Driver extends Component {
       btnStateTitle: "Bắt đầu",
       isProcess: false,
       popupReq: {
-        show: false
+        show: false,
+        title: '',
+        mess: ''
       },
       userDet: {
         addr: '',
@@ -33,15 +34,20 @@ class Driver extends Component {
         phone: ''
       }
     }
+    this.driverRes = {
+      name: this.webService.getUserName(),
+      driverphone: this.webService.getPhoneNum(),
+      driverid: this.webService.getIdUser(),
+      userphone: '',
+      mess: ''
+    }
     this.io = null
   }
   componentWillMount() {
-    this.setState({
-      popupReq: {
-        ...this.state.popupReq,
-        show: true
-      }
+    window.navigator.geolocation.getCurrentPosition(function(data){
+      console.log(data)
     })
+
     this.initData()
   }
   componentDidMount() {
@@ -51,8 +57,8 @@ class Driver extends Component {
     }
   }
   componentWillUnmount() {
-    if (this.io != null){
-    this.io.close()
+    if (this.io != null) {
+      this.io.close()
     }
   }
   initData() {
@@ -68,7 +74,7 @@ class Driver extends Component {
       return;
     } else if (this.webService.isDriver()) {
       self.props.isLogged(false)
-      self.io = io('http://localhost:3002', {
+      self.io = io(this.webService.sokDomain, {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
@@ -84,14 +90,23 @@ class Driver extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (data) {
-      console.log(data);
-      // if (data != undefined && data != null & self.state.isProcess != true) {
-      //   self.setState({
-      //     addr: data.addr,
-      //     name: data.name,
-      //     phone: data.phone
-      //   })
-      // }
+      if (data) {
+        self.setState({
+          popupReq: {
+            ...self.state.popupReq,
+            show: true,
+            title: data.name,
+            mess: data.addr + '|' + data.phone
+          },
+          userDet: {
+            ...self.state.userDet,
+            addr: data.addr,
+            name: data.name,
+            phone: data.phone
+          }
+        })
+        self.driverRes.userphone = data.phone
+      }
     })
   }
   onTimeOutReq() {
@@ -101,16 +116,36 @@ class Driver extends Component {
       }, 10000);
     }
   }
+  onConfirmPopup(e) {
+    const self = this
+    this.driverRes.mess = 'accept'
+    self.setState({
+      popupReq: {
+        ...self.state.popupReq,
+        show: false,
+        title: '',
+        mess: ''
+      }
+    }, () => {
+      self.io.emit('driver-send-response', self.driverRes)
+    })
+  }
   onCancelPopup() {
-    console.log('ok')
+    const self = this
+    this.driverRes.mess = 'reject'
+    self.setState({
+      popupReq: {
+        ...self.state.popupReq,
+        show: false,
+        title: '',
+        mess: ''
+      }
+    }, () => {
+      this.io.emit('driver-send-response', this.driverRes)
+    })
   }
   onClosePopup() {
-    this.setState({
-      popupReq: {
-        ...this.state.popupReq,
-        show: false
-      }
-    })
+    this.onCancelPopup()
   }
   changeSwitch() {
     if (this.refs.switch.checked) {
@@ -119,7 +154,9 @@ class Driver extends Component {
       this.setState({ switchState: "STAND BY" })
     }
   }
-  changeState() {
+  changeState(e) {
+    e.preventDefault();
+    console.log(this.state)
     const state = this.state.btnState;
     this.setState({ btnState: !state }, () => {
       if (this.state.btnState === true) {
@@ -151,10 +188,9 @@ class Driver extends Component {
         </div>
         <SweetAlert
           show={this.state.popupReq.show}
-          title='<strong>HTML <u>example</u></strong>'
-          text='<strong>HTML <u>example</u></strong>'
-
-          onConfirm={true}
+          title={this.state.popupReq.title}
+          text={this.state.popupReq.mess}
+          onConfirm={this.onConfirmPopup}
           onCancel={this.onCancelPopup}
           showCancelButton={true}
         // imageUrl="https://unsplash.it/400/200"

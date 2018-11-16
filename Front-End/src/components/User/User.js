@@ -11,8 +11,10 @@ class User extends Component {
     this.onPlaceChange = this.onPlaceChange.bind(this);
     this.onNoteChange = this.onNoteChange.bind(this);
     this.onSendInfo = this.onSendInfo.bind(this);
-    this.isBooked = localStorage.getItem('isBook') ? localStorage.getItem('isBook') : false;
     this.webService = new WebService();
+    this.isPlace = localStorage.getItem('isPlace') != null ? localStorage.getItem('isPlace') : '';
+    this.isNote = localStorage.getItem('isNote') != null ? localStorage.getItem('isNote') : '';
+    this.isBook = localStorage.getItem('isBook') != null ? localStorage.getItem('isBook') : false;
     this.state = {
       place: '',
       note: '',
@@ -24,8 +26,8 @@ class User extends Component {
     this.initData();
   }
   componentWillUnmount() {
-    if (this.io != null){
-    this.io.close()
+    if (this.io != null) {
+      this.io.close()
     }
   }
   initData() {
@@ -41,18 +43,28 @@ class User extends Component {
       return;
     } else if (this.webService.isUser()) {
       this.props.isLogged(false);
-      self.io = io('http://localhost:3002', {
+      self.io = io(this.webService.sokDomain, {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
           phone: self.webService.getPhoneNum()
         }
       });
+      self.initState()
       return;
     } else {
       this.props.history.push('/login')
       return;
     }
+  }
+  initState() {
+    const self = this
+    self.setState({
+      place: self.isPlace,
+      note: self.isNote,
+    }, () => {
+      self.refs.note.value = self.state.note
+    })
   }
   onPlaceChange(value) {
     this.setState({
@@ -66,12 +78,18 @@ class User extends Component {
   }
 
   onSendInfo() {
+    const self = this
     const userInf = {
       place: this.state.place,
       note: this.state.note,
+      id: this.webService.getIdUser(),
+      name: this.webService.getUserName(),
+      phone: this.webService.getPhoneNum()
     }
-    this.setState({ isBook: true }, () => {
-      localStorage.setItem('isBook', true)
+    self.setState({ isBook: true }, () => {
+      localStorage.setItem('isPlace', self.state.place)
+      localStorage.setItem('isNote', self.state.note)
+      localStorage.setItem('isBook', self.state.isBook)
     });
     this.io.emit('user-send-place', userInf)
     //alert("test");
@@ -95,7 +113,7 @@ class User extends Component {
             <button disabled={this.state.isBook} type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
           </div>
         </div>
-        <Map onPlaceChange={this.onPlaceChange} isBook={this.state.isBook} />
+        <Map onPlaceChange={this.onPlaceChange} isBook={this.state.isBook} isPlace={this.state.place} />
       </div>
 
     );
@@ -131,6 +149,7 @@ class Map extends Component {
     })
   }
   onPlacesChanged() {
+    console.log(this.state.onSearchInput)
     this.state.onSearchInput.focus();
     console.log(this.state.SearchBox.getPlaces())
   }
@@ -138,7 +157,9 @@ class Map extends Component {
     this.setState({ SearchBox: ref }, () => { });
   }
   onSearchInput(ref) {
-    this.setState({ onSearchInput: ref });
+    this.setState({ onSearchInput: ref }, () => {
+      this.state.onSearchInput.value = this.props.isPlace
+    });
   }
   onInputChange(event) {
     this.setState({ searchInput: event.target.value }, () => {
@@ -146,7 +167,6 @@ class Map extends Component {
     })
   }
   render() {
-
     return (
       <div className="google-map">
         <GoogleMapExample
@@ -174,6 +194,7 @@ const GoogleMapExample = withGoogleMap(props => (
     options={mapOptions}
     onClick={props.onMapClick}
   >
+    {console.log(props.onSearchInput)}
     <SearchBox
       bounds={props.bounds}
       controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
