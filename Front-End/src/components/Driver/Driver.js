@@ -10,10 +10,10 @@ import "./Driver.css";
 class Driver extends Component {
   constructor(props) {
     super(props);
+    this.handleCurLocate  = this.handleCurLocate.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
     this.onConfirmPopup = this.onConfirmPopup.bind(this);
-    this.onCancelPopup = this.onCancelPopup.bind(this);
     this.onClosePopup = this.onClosePopup.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
@@ -22,13 +22,19 @@ class Driver extends Component {
       switchState: "STAND BY",
       btnState: false,
       btnStateTitle: "Bắt đầu",
+      curLocate: {
+        lat: 0,
+        lng: 0
+      },
       isProcess: false,
       popupReq: {
         show: false,
+        popupType: true,
         title: '',
         mess: ''
       },
       userDet: {
+        reqId: '',
         addr: '',
         name: '',
         phone: ''
@@ -38,22 +44,23 @@ class Driver extends Component {
       name: this.webService.getUserName(),
       driverphone: this.webService.getPhoneNum(),
       driverid: this.webService.getIdUser(),
+      socketid: '',
+      requestid: '',
       userphone: '',
       mess: ''
     }
     this.io = null
   }
   componentWillMount() {
-    window.navigator.geolocation.getCurrentPosition(function(data){
-      console.log(data)
-    })
-
     this.initData()
   }
   componentDidMount() {
     if (this.io != null) {
-      this.onTimeOutReq();
       this.handleDataSocket();
+    }
+    this.handleCurLocate();
+    if (this.state.curLocate.lat === 0 && this.state.curLocate.lng === 0) {
+      this.props.popup({ title: 'Bạn vui lòng bật gps để xác định địa điểm', mess: '' })
     }
   }
   componentWillUnmount() {
@@ -74,6 +81,7 @@ class Driver extends Component {
       return;
     } else if (this.webService.isDriver()) {
       self.props.isLogged(false)
+      self.handleCurLocate()
       self.io = io(this.webService.sokDomain, {
         query: {
           permission: self.webService.getPermission(),
@@ -87,9 +95,25 @@ class Driver extends Component {
       return;
     }
   }
+  handleCurLocate() {
+    const self = this
+    window.navigator.geolocation.getCurrentPosition(function (data) {
+      clearInterval(self.gpsEnable);
+      self.setState({
+        curLocate: {
+          ...self.state.curLocate,
+          lat: data.coords.latitude,
+          lng: data.coords.longitude
+        }
+      })
+    }, function () {
+      self.props.popup({ title: 'Bạn vui lòng bật gps để xác định địa điểm', mess: '' })
+    })
+  }
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (data) {
+      console.log(data)
       if (data) {
         self.setState({
           popupReq: {
@@ -100,12 +124,18 @@ class Driver extends Component {
           },
           userDet: {
             ...self.state.userDet,
+            reqId: data.requestid,
             addr: data.addr,
             name: data.name,
             phone: data.phone
           }
+        }, () => {
+          self.onTimeOutReq()
+          self.driverRes.socketid = data.socketid
+          self.driverRes.userphone = data.phone
+          self.driverRes.requestid = data.requestid
         })
-        self.driverRes.userphone = data.phone
+
       }
     })
   }
@@ -127,25 +157,14 @@ class Driver extends Component {
         mess: ''
       }
     }, () => {
+      console.log(self.driverRes)
       self.io.emit('driver-send-response', self.driverRes)
     })
   }
-  onCancelPopup() {
-    const self = this
-    this.driverRes.mess = 'reject'
-    self.setState({
-      popupReq: {
-        ...self.state.popupReq,
-        show: false,
-        title: '',
-        mess: ''
-      }
-    }, () => {
-      this.io.emit('driver-send-response', this.driverRes)
-    })
-  }
   onClosePopup() {
-    this.onCancelPopup()
+    console.log('ok')
+    this.driverRes.mess = 'reject'
+    this.io.emit('driver-send-response', this.driverRes)
   }
   changeSwitch() {
     if (this.refs.switch.checked) {
@@ -156,7 +175,10 @@ class Driver extends Component {
   }
   changeState(e) {
     e.preventDefault();
-    console.log(this.state)
+    this.webService.driverFinish(this.state.userDet.reqId)
+      .then(res => {
+        console.log(res + 'finish')
+      })
     const state = this.state.btnState;
     this.setState({ btnState: !state }, () => {
       if (this.state.btnState === true) {
@@ -191,7 +213,6 @@ class Driver extends Component {
           title={this.state.popupReq.title}
           text={this.state.popupReq.mess}
           onConfirm={this.onConfirmPopup}
-          onCancel={this.onCancelPopup}
           showCancelButton={true}
         // imageUrl="https://unsplash.it/400/200"
         // imageWidth="400"

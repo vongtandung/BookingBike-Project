@@ -35,8 +35,8 @@ class LocateIdentify extends Component {
     }
   }
   componentWillUnmount() {
-    if (this.io != null){
-    this.io.close()
+    if (this.io != null) {
+      this.io.close()
     }
   }
   initData() {
@@ -68,35 +68,38 @@ class LocateIdentify extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-place-locate', function (data) {
-      console.log(data)
-      let userDet = {
-        id: data.id,
-        name: data.data.name,
-        phone: data.data.phone,
-        addrCur: data.data.place,
-        note: data.data.note,
-        addrAutoRev: '',
-        addrRev: '',
-        center: {
-          lat: '',
-          lng: ''
+      if (data) {
+        let userDet = {
+          id: data.id,
+          requestid: data.requestid,
+          name: data.data.name,
+          phone: data.data.phone,
+          addrCur: data.data.place,
+          note: data.data.note,
+          addrAutoRev: '',
+          addrRev: '',
+          center: {
+            lat: '',
+            lng: ''
+          }
         }
+        self.webService.getPlace(data.data.place)
+          .then(res => {
+            userDet.addrAutoRev = res.results[0].formatted_address;
+            userDet.center = res.results[0].geometry.location;
+            self.userList.push(userDet);
+            self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
+            })
+          }).catch(() => {
+            userDet.center.lat = 10.801940;
+            userDet.center.lng = 106.738449;
+            self.userList.push(userDet);
+            self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
+            })
+          })
       }
-      self.webService.getPlace(data.data.place)
-        .then(res => {
-          userDet.addrAutoRev = res.results[0].formatted_address;
-          userDet.center = res.results[0].geometry.location;
-          self.userList.push(userDet);
-          self.setState({ userList: self.userList, userNum: self.userList.length }, () =>{
-          })
-        }).catch(() => {
-          userDet.center.lat = 10.801940;
-          userDet.center.lng = 106.738449;
-          self.userList.push(userDet);
-          self.setState({ userList: self.userList, userNum: self.userList.length }, () =>{
-          })
-        })
     })
+
   }
   onUserNum(value) {
     this.setState({ userNum: value })
@@ -124,6 +127,8 @@ class LocateIdentify extends Component {
       return index === user
     })
     let result = {
+      socketid: userSel[0].id,
+      requestid: userSel[0].requestid,
       name: userSel[0].name,
       phone: userSel[0].phone,
       addr: {
@@ -132,11 +137,12 @@ class LocateIdentify extends Component {
           lat: userSel[0].center.lat,
           lng: userSel[0].center.lng
         }
-      }
+      } 
     }
     self.setState({
       userList: userList,
     }, () => {
+      console.log(result.socketid)
       self.userList = self.state.userList
       self.io.emit('locate-send-result', result)
     })

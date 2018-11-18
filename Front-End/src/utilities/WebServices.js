@@ -3,13 +3,12 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://192.168.43.43:3001/api'  // API server domain
+        this.apiDomain = domain || 'http://172.16.19.190:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
-        this.sokDomain = 'http://192.168.43.43:3002'
+        this.sokDomain = 'http://172.16.19.190:3002'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff
         this.fetchDataMap = this.fetchDataMap.bind(this) // React binding stuff
-
     }
 
     ///////////////////////////////////////////////          API FUNCTION          //////////////////////////////////////////////////////
@@ -25,6 +24,22 @@ export default class WebService {
         }
         // Get a token from api server using the fetch api
         return this.fetchDataApi(`${this.apiDomain}/login`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            console.log(res)
+            return res;
+        })
+    }
+
+    //#URl: /driver/finish
+    driverFinish(reqId) {
+        const param = {
+            requestid: reqId
+        }
+        // Get a token from api server using the fetch api
+        return this.fetchDataApi(`${this.apiDomain}/driver/finish`, {
             method: 'POST',
             json: true,
             body: JSON.stringify(param),

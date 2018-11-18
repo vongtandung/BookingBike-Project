@@ -8,6 +8,7 @@ import WebService from "../../utilities/WebServices";
 class User extends Component {
   constructor(props) {
     super(props);
+    this.handleDataSocket = this.handleDataSocket.bind(this);
     this.onPlaceChange = this.onPlaceChange.bind(this);
     this.onNoteChange = this.onNoteChange.bind(this);
     this.onSendInfo = this.onSendInfo.bind(this);
@@ -24,6 +25,9 @@ class User extends Component {
   }
   componentWillMount() {
     this.initData();
+  }
+  componentDidMount() {
+    this.handleDataSocket()
   }
   componentWillUnmount() {
     if (this.io != null) {
@@ -56,6 +60,15 @@ class User extends Component {
       this.props.history.push('/login')
       return;
     }
+  }
+  handleDataSocket() {
+    const self = this;
+    self.io.on('server-send-response-user', function (data) {
+      self.props.popup({
+        title: 'Tài xế' + ' ' + data.name + ' ' + 'đã nhận',
+        mess: 'Số điện thoại:' + ' ' + data.driverphone
+      })
+    })
   }
   initState() {
     const self = this
@@ -194,7 +207,6 @@ const GoogleMapExample = withGoogleMap(props => (
     options={mapOptions}
     onClick={props.onMapClick}
   >
-    {console.log(props.onSearchInput)}
     <SearchBox
       bounds={props.bounds}
       controlPosition={window.google.maps.ControlPosition.TOP_LEFT}
