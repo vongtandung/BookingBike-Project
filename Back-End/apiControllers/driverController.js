@@ -8,6 +8,19 @@ var express = require('express'),
     var router= express.Router();
     router.post('/finish',(req,res)=> {
         requestRepo.updateState('Finished', req.body.requestid).then( 
+            driverRepo.setFree(req.body.driverid).then(
+                res.json(
+                    {"mess" : "OK"}
+                )
+            )
+        )
+        .catch(err=>{
+            console.log(err);
+            res.end(err);
+        })
+    });
+    router.post('/updateState',(req,res)=> {
+        driverRepo.updateState(req.body).then( 
             res.json(
                 {"mess" : "OK"}
             )
@@ -17,11 +30,14 @@ var express = require('express'),
             res.end(err);
         })
     });
-    router.post('/update',(req,res)=> {
-        driverRepo.updateLocate(req.body).then( 
-            res.json(
-                {"mess" : "OK"}
+    router.post('/acceptRequest',(req,res)=>{
+        driverRepo.updateRequest(req.body).then(
+            driverRepo.setBusy(req.body.driverid).then(
+                res.json(
+                    {"mess" : "OK"}
+                )
             )
+            
         )
         .catch(err=>{
             console.log(err);

@@ -28,7 +28,7 @@ router.post('/request',(req,res)=> {
     )
 });
 router.post('/located',(req,res)=> {
-    requestRepo.updateState("Located", req.body.requestid).then(
+    requestRepo.located( req.body).then(
         res.json("Located")
     )
     .catch(err =>{
