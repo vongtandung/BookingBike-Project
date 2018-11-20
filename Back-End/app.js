@@ -6,6 +6,8 @@ var express = require('express'),
 var userCtrl = require('./apiControllers/userController');
 var driverCtrl = require('./apiControllers/driverController');
 var loginCtrl = require('./apiControllers/loginController');
+var adminCtrl = require('./apiControllers/admincontroller');
+var locateCtrl = require('./apiControllers/locateController');
 
 var app= express();
 app.use(morgan('dev'));
@@ -17,6 +19,8 @@ require('./socket')
 app.use('/api/user/', userCtrl);
 app.use('/api/driver/', driverCtrl);
 app.use('/api/login/', loginCtrl);
+app.use('/api/admin/',adminCtrl);
+app.use('/api/locate/', locateCtrl);
 
 var PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
