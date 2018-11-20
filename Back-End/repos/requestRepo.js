@@ -22,4 +22,12 @@ exports.updateState = (state, id) => {
 exports.getRequestId = phone => {
     var sql = `select request.id from request, user where user.PhoneNumber = '${phone}' ORDER BY request.Time DESC LIMIT 1`;
 	return db.load(sql);
+};
+exports.located = Request =>{
+    var sql = `update request set State = "located", request.lat = '${Request.lat}', request.lng ='${Request.lng}' where id = '${Request.id}'`;
+    return db.insert(sql);
+}
+exports.getInfor = id => {
+    var sql = `select * from user where id = '${id}'`;
+	return db.insert(sql);
 }
