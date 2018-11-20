@@ -1,6 +1,7 @@
 import React, { Component } from "react";
-import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import { withGoogleMap, GoogleMap, Marker, DirectionsRenderer } from 'react-google-maps';
 import SweetAlert from 'sweetalert2-react';
+import haversine from 'haversine';
 import io from 'socket.io-client';
 import WebService from '../../utilities/WebServices';
 import markerIco from '../../assets/images/marker-ico.png'
@@ -10,11 +11,13 @@ import "./Driver.css";
 class Driver extends Component {
   constructor(props) {
     super(props);
-    this.handleCurLocate  = this.handleCurLocate.bind(this);
+    this.handleCurLocate = this.handleCurLocate.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
+    this.onShowPopupWarn = this.onShowPopupWarn.bind(this);
+    this.onClosePopupWarn = this.onClosePopupWarn.bind(this);
     this.onConfirmPopup = this.onConfirmPopup.bind(this);
-    this.onClosePopup = this.onClosePopup.bind(this);
+    this.onClosePopupReq = this.onClosePopupReq.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
     this.webService = new WebService();
@@ -58,10 +61,6 @@ class Driver extends Component {
     if (this.io != null) {
       this.handleDataSocket();
     }
-    this.handleCurLocate();
-    if (this.state.curLocate.lat === 0 && this.state.curLocate.lng === 0) {
-      this.props.popup({ title: 'Bạn vui lòng bật gps để xác định địa điểm', mess: '' })
-    }
   }
   componentWillUnmount() {
     if (this.io != null) {
@@ -97,28 +96,35 @@ class Driver extends Component {
   }
   handleCurLocate() {
     const self = this
+    window.navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
+      if (result.state === 'granted') {
+        return
+      } else if (result.state === 'prompt' || result.state === 'denied') {
+        self.onShowPopupWarn()
+      }
+    });
+
     window.navigator.geolocation.getCurrentPosition(function (data) {
-      clearInterval(self.gpsEnable);
       self.setState({
         curLocate: {
           ...self.state.curLocate,
           lat: data.coords.latitude,
           lng: data.coords.longitude
         }
+      }, () => {
+        self.onClosePopupWarn()
       })
-    }, function () {
-      self.props.popup({ title: 'Bạn vui lòng bật gps để xác định địa điểm', mess: '' })
     })
   }
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (data) {
-      console.log(data)
       if (data) {
         self.setState({
           popupReq: {
             ...self.state.popupReq,
             show: true,
+            popupReq: true,
             title: data.name,
             mess: data.addr + '|' + data.phone
           },
@@ -146,23 +152,51 @@ class Driver extends Component {
       }, 10000);
     }
   }
-  onConfirmPopup(e) {
+  onShowPopupWarn() {
     const self = this
-    this.driverRes.mess = 'accept'
+    self.setState({
+      popupReq: {
+        ...self.state.popupReq,
+        show: true,
+        popupType: false,
+        title: 'Bạn vui lòng bật gps và tải lại trang để tiếp tục',
+        mess: ''
+      }
+    })
+  }
+  onClosePopupWarn() {
+    const self = this
     self.setState({
       popupReq: {
         ...self.state.popupReq,
         show: false,
+        popupType: false,
         title: '',
         mess: ''
       }
-    }, () => {
-      console.log(self.driverRes)
-      self.io.emit('driver-send-response', self.driverRes)
     })
   }
-  onClosePopup() {
-    console.log('ok')
+  onConfirmPopup() {
+    const self = this
+    if (this.state.popupReq.popupType === true) {
+      this.driverRes.mess = 'accept'
+      self.setState({
+        popupReq: {
+          ...self.state.popupReq,
+          show: false,
+          title: '',
+          mess: ''
+        }
+      }, () => {
+        self.io.emit('driver-send-response', self.driverRes)
+      })
+    } else if (this.state.popupReq.popupType === false) {
+      if (this.state.curLocate.lat === 0) {
+        this.handleCurLocate()
+      }
+    }
+  }
+  onClosePopupReq() {
     this.driverRes.mess = 'reject'
     this.io.emit('driver-send-response', this.driverRes)
   }
@@ -177,7 +211,6 @@ class Driver extends Component {
     e.preventDefault();
     this.webService.driverFinish(this.state.userDet.reqId)
       .then(res => {
-        console.log(res + 'finish')
       })
     const state = this.state.btnState;
     this.setState({ btnState: !state }, () => {
@@ -213,12 +246,12 @@ class Driver extends Component {
           title={this.state.popupReq.title}
           text={this.state.popupReq.mess}
           onConfirm={this.onConfirmPopup}
-          showCancelButton={true}
+          showCancelButton={this.state.popupReq.popupType}
         // imageUrl="https://unsplash.it/400/200"
         // imageWidth="400"
         // imageHeight="200"
         />
-        <Map />
+        <Map center={this.state.curLocate} popup={this.props.popup} />
       </div>
     );
   }
@@ -229,23 +262,78 @@ class Map extends Component {
     super(props);
     this.getPoint = this.getPoint.bind(this);
     this.state = {
-      center: {
-        lat: 10.801940,
-        lng: 106.738449
+      defaultCenter: {
+        latitude: 0,
+        longitude: 0
       },
-      zoom: 16
+      geoCurrCenter: {
+        lat: null,
+        lng: null
+      },
+      zoom: 16,
+      directions: null,
+      marker: false
     }
   }
-
-  getPoint(event) {
-    console.log(event)
+  componentWillMount() {
+    console.log('ok')
+    const DirectionsService = new window.google.maps.DirectionsService();
+    console.log(new window.google.maps.LatLng(10.801640, 106.741040))
+    DirectionsService.route({
+      origin: new window.google.maps.LatLng(10.801640, 106.741040),
+      destination: new window.google.maps.LatLng(10.802670, 106.645150 ),
+      provideRouteAlternatives: true,
+      avoidTolls: true,
+      avoidHighways: true,
+      travelMode: window.google.maps.TravelMode.DRIVING,
+      optimizeWaypoints: true,
+    }, (result, status) => {
+      if (status === window.google.maps.DirectionsStatus.OK) {
+        this.setState({
+          directions: result,
+          marker: true
+        }, () => console.log(this.state.directions.routes));
+      } else {
+        console.error(`error fetching directions ${result}`);
+      }
+    });
+  }
+  componentWillReceiveProps(nextProps) {
     this.setState({
-      center: {
-        ...this.state.center,
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
+      geoCurrCenter: {
+        ...this.state.geoCurrCenter,
+        lat: nextProps.center.lat,
+        lng: nextProps.center.lng
+      }
+    }, () => this.render())
+    this.setState({
+      defaultCenter: {
+        ...this.state.defaultCenter,
+        latitude: nextProps.center.lat,
+        longitude: nextProps.center.lng
       }
     })
+  }
+  componentDidMount() {
+    this.render();
+  }
+  getPoint(event) {
+    const distance = haversine(
+      {
+        latitude: event.latLng.lat(),
+        longitude: event.latLng.lng()
+      }, this.state.defaultCenter, { unit: 'meter' })
+    if (distance <= 100) {
+      this.setState({
+        geoCurrCenter: {
+          ...this.state.geoCurrCenter,
+          lat: event.latLng.lat(),
+          lng: event.latLng.lng()
+        }
+      })
+    } else {
+      this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
+    }
   }
   render() {
 
@@ -256,8 +344,10 @@ class Map extends Component {
           containerElement={<div style={{ height: `90vh` }} />}
           mapElement={<div style={{ height: `90%` }} />}
           onMapClick={this.getPoint}
-          center={this.state.center}
+          geoCurrCenter={this.state.geoCurrCenter}
           zoom={this.state.zoom}
+          directions={this.state.directions}
+          marker={this.state.marker}
         />
       </div>
     );
@@ -266,12 +356,15 @@ class Map extends Component {
 
 const GoogleMapExample = withGoogleMap(props => (
   <GoogleMap
-    defaultCenter={props.center}
+    center={props.geoCurrCenter}
     defaultZoom={props.zoom}
     options={mapOptions}
     onClick={props.onMapClick}
   >
-    <Marker position={props.center} icon={markerIco} onClick={props.onMarkerClick} />
+  {console.log(props.directions)}
+    {props.directions && <DirectionsRenderer directions={props.directions} options={{suppressMarkers:true}} />}
+
+    <Marker position={props.geoCurrCenter} icon={markerIco} onClick={props.onMarkerClick} />
   </GoogleMap>
 ));
 

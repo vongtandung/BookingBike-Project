@@ -1,11 +1,17 @@
 import React, { Component } from 'react';
 import { withRouter, Link } from "react-router-dom";
+import WebService from '../../utilities/WebServices';
 
 class HeaderManager extends Component {
   constructor(props) {
     super(props);
+    this.logOut = this.logOut.bind(this);
+    this.webService = new WebService();
   }
-  
+  logOut(){
+    this.webService.logout();
+    this.props.history.push('/login')
+  }
   render() {
     return (
       <div>
@@ -31,7 +37,7 @@ class HeaderManager extends Component {
                 <i className="fas fa-user-circle fa-fw fa-2x" />
               </div>
               <div className="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                <button className="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">Logout</button>
+                <button className="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal" onClick={this.logOut}>Đăng xuất</button>
               </div>
             </li>
           </ul>

@@ -65,8 +65,8 @@ class User extends Component {
     const self = this;
     self.io.on('server-send-response-user', function (data) {
       self.props.popup({
-        title: 'Tài xế' + ' ' + data.name + ' ' + 'đã nhận',
-        mess: 'Số điện thoại:' + ' ' + data.driverphone
+        title: 'Tài xế ' + data.name + ' đã nhận',
+        mess: 'Số điện thoại: ' + data.driverphone
       })
     })
   }
