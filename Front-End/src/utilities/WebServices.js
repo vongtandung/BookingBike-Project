@@ -258,7 +258,8 @@ export default class WebService {
                 ...options,
                 headers: {
                     "Accept": "application/json",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "x-access-token" : this.getToken()
                 }
             }).then(this.checkStatus).then(
                 response => {
@@ -285,7 +286,7 @@ export default class WebService {
             );
 
             fetch(url, {
-                ...options,
+                ...options
             }).then(this.checkStatus).then(
                 response => {
                     resolve(response.json())

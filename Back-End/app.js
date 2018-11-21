@@ -11,15 +11,14 @@ var locateCtrl = require('./apiControllers/locateController');
 var verifyAccessToken = require('./repos/authRepo').verifyAccessToken;
 
 var app= express();
-app.use(morgan('dev'));
-app.use(function(req, res, next) { res.header("Access-Control-Allow-Origin", "*"); res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept"); next(); });
+app.use(cors())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 require('./socket')
 app.use('/api/user/', userCtrl);
 app.use('/api/driver/',verifyAccessToken, driverCtrl);
-app.use('/api/login/',verifyAccessToken, loginCtrl);
+app.use('/api/login/', loginCtrl);
 app.use('/api/admin/',verifyAccessToken, adminCtrl);
 app.use('/api/locate/',verifyAccessToken, locateCtrl);
 

@@ -30,6 +30,10 @@ class Driver extends Component {
         lat: 0,
         lng: 0
       },
+      revLocate: {
+        lat: 0,
+        lng: 0
+      },
       isProcess: false,
       popupReq: {
         show: false,
@@ -123,7 +127,7 @@ class Driver extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (reqId) {
-      if (reqId) { // data: reqID
+      if (reqId) {
         self.webService.getRequestInfo(reqId)
           .then(res => {
             self.setState({
@@ -183,8 +187,8 @@ class Driver extends Component {
   }
   onConfirmPopup() {
     const self = this
+    const reqId = this.state.userDet.reqId
     if (this.state.popupReq.popupType === true) {
-      this.driverRes.mess = 'accept'
       self.setState({
         popupReq: {
           ...self.state.popupReq,
@@ -197,7 +201,11 @@ class Driver extends Component {
         .then(res =>{
           console.log(res)
         })
-        self.io.emit('driver-send-response', self.driverRes)//data req.id, mess
+        let params = {
+          requestid: reqId,
+          mess: 'accept'
+        }
+        self.io.emit('driver-send-response', params)
       })
     } else if (this.state.popupReq.popupType === false) {
       if (this.state.curLocate.lat === 0) {
@@ -218,12 +226,20 @@ class Driver extends Component {
     }, () =>{
       let params = {
         requestid: reqId,
-        mess: this.state.driverRes.mess
+        mess: 'reject'
       }
-      this.driverRes.mess = 'reject'
-      this.io.emit('driver-send-response', params)//data req.id, mess
+      this.io.emit('driver-send-response', params)
     })
 
+  }
+  updateLocate(center){
+    this.setState({
+      revLocate: {
+        ...this.state.revLocate,
+        lat: center.lat,
+        lng: center.lng
+      }
+    })
   }
   changeSwitch(state) {// call api Update state
     this.setState({ switchState: state });
@@ -305,7 +321,7 @@ class Driver extends Component {
         // imageWidth="400"
         // imageHeight="200"
         />
-        <Map center={this.state.curLocate} reqAccept={this.state.reqAccept} popup={this.props.popup} />
+        <Map center={this.state.curLocate} reqAccept={this.state.reqAccept} popup={this.props.popup} curLocate={this.updateLocate} />
       </div>
     );
   }
@@ -367,8 +383,9 @@ class Map extends Component {
           lat: event.latLng.lat(),
           lng: event.latLng.lng()
         }
-      })
+      }, () => this.props.curLocate(this.state.geoCurrCenter))
     } else {
+      this.props.curLocate(this.state.defaultCenter)
       this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
     }
   }
