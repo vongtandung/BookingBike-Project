@@ -6,6 +6,7 @@ var io = server;
 var arrayDriver = [];
 var arrayLocaIder = [];
 var arrayManager = [];
+var arrayUser = [];
 const numberDriver = 5;
 io.on("connection", function(socket) {
   console.log(socket.id);
@@ -19,6 +20,7 @@ io.on("connection", function(socket) {
   Listarr = [];
   if (socket.handshake.query.permission === "1") {
     console.log("User " + person.name + " Is connect");
+    arrayUser.push(person);
   } else {
     if (socket.handshake.query.permission === "2") {
       console.log("Location Identifier " + person.name + " Is connect");
@@ -37,8 +39,7 @@ io.on("connection", function(socket) {
   }
   socket.on("driver-send-response", function(resp) {
     if (resp.mess === "accept") {
-      //chỗ này phải suy nghĩ lại. sao gửi lại cho user
-      io.to(resp.id).emit("server-send-response-user", requestid);
+     sendResultToUser("server-send-success-response-user", resp);
     }
     if (resp.mess === "reject") {
       if (listarr.length > 2) {
@@ -47,10 +48,10 @@ io.on("connection", function(socket) {
           return per.id === listarr[0].driverid;
         });
         for (i = 0; i < ele.length; i++) {
-          io.to(ele[i].socketid).emit("server-send-request-driver", requestid);
+          io.to(ele[i].socketid).emit("server-send-request-driver", resp.requestid);
         }
-      } else{
-        //send kết quả về user request thất bại
+      } else {
+        sendResultToUser("server-send-fail-response-user",resp.requestid);
       }
     }
   });
@@ -85,7 +86,7 @@ io.on("connection", function(socket) {
         io.to(ele[i].socketid).emit("server-send-request-driver", requestid);
       }
     } else {
-      //send kết quả về user request thất bại
+      sendResultToUser("server-send-fail-response-user",requestid);
     }
   });
 
@@ -107,6 +108,11 @@ io.on("connection", function(socket) {
             return per.socketid === socket.id;
           });
           arrayDriver.splice(arrayDriver.indexOf(ele[0]), 1);
+        } else {
+          ele = arrayUser.filter((per, index) => {
+            return per.socketid === socket.id;
+          });
+          arrayUser.splice(arrayUser.indexOf(ele[0]), 1);
         }
       }
     }
@@ -162,6 +168,16 @@ function getDriverListSorted() {
       });
     } else {
       return;
+    }
+  });
+}
+function sendResultToUser(event, requestid){
+  requestRepo.getUserByRequestId(requestid).then(row => {
+    ele = arrayUser.filter((per, index) => {
+      return per.id === row[0].idUser;
+    });
+    for (i = 0; i < ele.length; i++) {
+      io.to(ele[i].id).emit(event, requestid);
     }
   });
 }
