@@ -80,11 +80,11 @@ io.on("connection", function(socket) {
       console.log("No location Identifier is on");
     }
   });
-  socket.on("locate-send-result", function(requestid) { 
+  socket.on("locate-send-result", function(resp) { 
     ele = arrayDriver.filter((per, index) => {
-      return per.id === socket.handshake.query.id;
+      return per.id === resp.driverid;
     });
-    io.to(ele[0].socketid).emit("server-send-request-driver", requestid);
+    io.to(ele[0].socketid).emit("server-send-request-driver", res.requestid);
   });
 
   socket.on("disconnect", function() {
