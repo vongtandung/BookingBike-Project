@@ -18,3 +18,7 @@ exports.setFree =(driverid) =>{
     var sql = `update driverlocate set st=1 where driverid = '${driverid}'`;
     return db.insert(sql);
 }
+exports.getAllDriverLocate=()=>{
+    var sql = `select * from driverlocate where st=1`;
+    return db.load(sql);
+}
