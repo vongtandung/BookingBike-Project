@@ -40,5 +40,37 @@ router.post('/',(req,res)=> {
         res.end('View error log on console');
     })
 })
+router.post('/renewtoken', (req, res) => {
+    var rToken = req.body.refreshToken;
+    authRepo.verifyRefreshToken(rToken)
+        .then(rows => {
+            if (rows.length === 0) {
+                res.statusCode = 400;
+                res.json({
+                    msg: 'invalid refresh-token'
+                });
+
+                throw new Error('abort-chain'); // break promise chain
+
+            } else {
+                return rows[0].ID;
+            }
+        })
+        .then(id => userRepo.load(id))
+        .then(rows => {
+            var userObj = rows[0];
+            var token = authRepo.generateAccessToken(userObj);
+            res.json({
+                access_token: token
+            });
+        })
+        .catch(err => {
+            if (err.message !== 'abort-chain') {
+                console.log(err);
+                res.statusCode = 500;
+                res.end('View error log on console.');
+            }
+        });
+});
 
 module.exports= router;
