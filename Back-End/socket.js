@@ -1,97 +1,117 @@
 var http = require("http").createServer();
 var socketPort = process.env.PORT || 3002;
 server = require("socket.io")(socketPort);
+requestRepo = require("../Back-End/repos/requestRepo");
 var io = server;
 var arrayDriver = [];
 var arrayLocaIder = [];
 var arrayManager = [];
 const numberDriver = 5;
-var person = {
-  socketid: "",
-  name: "",
-  phone: ""
-};
 io.on("connection", function(socket) {
-  person.socketid = socket.id;
-  person.name = socket.handshake.query.name;
-  person.phone = socket.handshake.query.phone;
   console.log(socket.id);
-  console.log(socket.handshake.query.permission);
+  console.log("name: " + socket.handshake.query.name);
+  person = {
+    socketid: socket.id,
+    name: socket.handshake.query.name,
+    id: socket.handshake.query.id,
+    permission: socket.handshake.query.permission
+  };
+  Listarr = [];
   if (socket.handshake.query.permission === "1") {
     console.log("User " + person.name + " Is connect");
   } else {
     if (socket.handshake.query.permission === "2") {
       console.log("Location Identifier " + person.name + " Is connect");
-      pushNewConnect(arrayLocaIder,person,socket.id);
+      arrayLocaIder.push(person);
     } else {
       if (socket.handshake.query.permission === "3") {
         console.log("Manager " + socket.handshake.query.name + " Is connect");
-        pushNewConnect(arrayManager,person,socket.id);
+        arrayManager.push(person);
       } else {
-        if (socket.handshake.query.permission === "4") {
-          console.log("Driver " + socket.handshake.query.name + " Is connect");
-          pushNewConnect(arrayDriver,person,socket.id);
+        if (person.permission === "4") {
+          console.log("Driver " + person.name + " Is connect");
+          arrayDriver.push(person);
         }
       }
     }
   }
-  socket.on("user-send-place", function(place) {
-    const serverData = {
-      id : socket.id,
-      place: place,
-      name: person.name,
-      phone: person.phone
+  socket.on("driver-send-response", function(resp) {
+    if (resp.mess === "accept") {
+      //chỗ này phải suy nghĩ lại. sao gửi lại cho user
+      io.to(resp.id).emit("server-send-response-user", requestid);
     }
-    console.log(serverData);
+    if (resp.mess === "reject") {
+      if (listarr.length > 2) {
+        listarr.splice(0, 1);
+        ele = arrayDriver.filter((per, index) => {
+          return per.id === listarr[0].driverid;
+        });
+        for (i = 0; i < ele.length; i++) {
+          io.to(ele[i].socketid).emit("server-send-request-driver", requestid);
+        }
+      } else{
+        //send kết quả về user request thất bại
+      }
+    }
+  });
+  socket.on("user-send-place", function(data) {
     if (arrayLocaIder.length > 0) {
-      arrayLocaIder.forEach(element => {
-        io.to(element.socketid).emit("server-send-place-locate", serverData);
-      });
+      const index = Math.floor(Math.random() * arrayLocaIder.length + 0);
+      const request = {
+        idUser: data.id,
+        beginPlace: data.place,
+        time: Date.now()
+      };
+      console.log("array kocate leng: " + arrayLocaIder.length);
+      requestRepo.addRequest(request).then(
+        requestRepo.getRequestId(data.phone).then(row => {
+          io.to(arrayLocaIder[index].socketid).emit(
+            "server-send-place-locate",
+            row[0].id
+          );
+        })
+      );
     } else {
       console.log("No location Identifier is on");
-      //console.log(place);
     }
   });
-  socket.on("locate-send-result", function(result) {
-    console.log(result);
-    const request={
-      addr: result.addr.addrCur,
-      name: result.name,
-      phone: result.phone
-    }
-    console.log(request);
-    var Listarr = findListdriver(arrayDriver,result.addr.center.lat,result.addr.center.lng);
-    var isBooked = false;
-    /*for( let i =0; i < arrayDriver.length;)
-    {
-      io.to(arrayDriver[i].socketid).emit("server-send-request-driver",request);
-      socket.on("driver-send-response", function(resp){
-        if(resp === "accept")
-        {
-          i = arrayDriver.length;
-          isBooked= true;
-          const driverInfo={
-            name: element.name,
-            phone: element.phone
-          }
-          socket.emit("server-send-user-driver",driverInfo);
-          isBooked = true;
-        }
-        else{
-          i++;
-        }
+  socket.on("locate-send-result", function(requestid) {
+    listarr = getDriverListSorted();
+    if (listarr.length > 0) {
+      ele = arrayDriver.filter((per, index) => {
+        return per.id === listarr[0].driverid;
       });
-    }*/
-    if(isBooked === false)
-    {
-      socket.emit("server-send-user-driver","Requset Fail");
+      for (i = 0; i < ele.length; i++) {
+        io.to(ele[i].socketid).emit("server-send-request-driver", requestid);
+      }
+    } else {
+      //send kết quả về user request thất bại
     }
   });
-  socket.on("locate-send-place", function(place)
-  {
 
+  socket.on("disconnect", function() {
+    if (person.permission === "2") {
+      ele = arrayLocaIder.filter((per, index) => {
+        return per.socketid === socket.id;
+      });
+      arrayLocaIder.splice(arrayLocaIder.indexOf(ele[0]), 1);
+    } else {
+      if (person.permission === "3") {
+        ele = arrayManager.filter((per, index) => {
+          return per.socketid === socket.id;
+        });
+        arrayManager.splice(arrayManager.indexOf(ele[0]), 1);
+      } else {
+        if (person.permission === "4") {
+          ele = arrayDriver.filter((per, index) => {
+            return per.socketid === socket.id;
+          });
+          arrayDriver.splice(arrayDriver.indexOf(ele[0]), 1);
+        }
+      }
+    }
+    console.log(person.socketid + "is disconect");
   });
-  socket.on("disconnect", function() {});
 });
 
 console.log(`WS running on port ${socketPort}`);
@@ -100,33 +120,48 @@ module.exports = {
   io
 };
 
-function pushNewConnect(array, person, socketid)
-{
-  if (array.includes(person) === false) {
-    array.push(person);
-  } else {
-    if (array[array.indexOf(person)].socketid !== socketid) {
-      array[array.indexOf(person)].socketid = socketid;
+function distanceWithHaversin(lat1, lon1, lat2, lon2) {
+  var R = 6371e3; // metres
+  var p1 = toRadians(lat1);
+  var p2 = toRadians(lat2);
+  var dentalat = toRadians(lat2 - lat1);
+  var dentalon = toRadians(lon2 - lon1);
+
+  var a =
+    Math.sin(dentalat / 2) * Math.sin(dentalat / 2) +
+    Math.cos(p1) *
+      Math.cos(p2) *
+      Math.sin(dentalon / 2) *
+      Math.sin(dentalon / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+function toRadians(Value) {
+  return (Value * Math.PI) / 180;
+}
+function getDriverListSorted() {
+  driverRepo.getAllDriverLocate().then(row => {
+    if (row.length > 0) {
+      for (i = 0; i < row.length; i++) {
+        row[i].distance = distanceWithHaversin(
+          req.body.lat,
+          req.body.lng,
+          row[i].lat,
+          row[i].lng
+        );
+      }
+      return row.sort(function(a, b) {
+        var x = a.distance;
+        var y = b.distance;
+        if (x < y) {
+          return -1;
+        } else {
+          return 1;
+        }
+      });
+    } else {
+      return;
     }
-  }
-}
-function distanceWithHaversin(lat1, lon1 ,lat2, lon2)
-{	
-var R = 6371e3; // metres
-var p1 = lat1.toRadians();
-var p2 = lat2.toRadians();
-var  dentalat = (lat2-lat1).toRadians();
-var  dentalon = (lon2-lon1).toRadians();
-
-var a = Math.sin(dentalat/2) * Math.sin(dentalat/2) +
-        Math.cos(p1) * Math.cos(p2) *
-        Math.sin(dentalon/2) * Math.sin(dentalon/2);
-var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-return R*c;
-}
-
-function findListdriver(array , lat, lon, n)
-{
-
+  });
 }
