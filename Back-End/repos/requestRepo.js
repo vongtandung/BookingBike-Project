@@ -31,3 +31,7 @@ exports.getInfor = id => {
     var sql = `select * from user where id = '${id}'`;
 	return db.insert(sql);
 }
+exports.getUserByRequestId = requestid =>{
+    var sql = `select idUser from request where id = '${requestid}'`;
+	return db.load(sql);
+}
