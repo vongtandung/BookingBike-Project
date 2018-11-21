@@ -15,7 +15,7 @@ export default class WebService {
 
     //Function config fetch data from server API -----------------------------------------
 
-    //FOR GUEST
+    //FOR ALL
     //#URl: /login
     login(username, password) {
         const param = {
@@ -32,13 +32,75 @@ export default class WebService {
         })
     }
 
-    //#URl: /driver/finish
-    driverFinish(reqId) {
+    //FOR USER
+    //#URl: /user
+    getDriverInfo(driverid) {
+        const action = 'getDriverInfo'
         const param = {
-            requestid: reqId
+            driverid: driverid
         }
-        // Get a token from api server using the fetch api
-        return this.fetchDataApi(`${this.apiDomain}/driver/finish`, {
+        return this.fetchDataApi(`${this.apiDomain}/user/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+
+    //FOR DRIVER
+    //#URl: /driver
+    getRequestInfo(requestid) {
+        const action = 'getRequestInfo'
+        const param = {
+            requestid: requestid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+    acceptRequest(driverid, requestid) {
+        const action = 'acceptRequest'
+        const param = {
+            driverid: driverid,
+            requestid: requestid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+    updateState(lat, lng, state, driverid) {
+        const action = 'updateState'
+        const param = {
+            lat: lat,
+            lng: lng,
+            state: state,
+            driverid: driverid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            console.log(res)
+            return res;
+        })
+    }
+    driverFinish(requestid, driverid) {
+        const action = 'finish'
+        const param = {
+            requestid: requestid,
+            driverid: driverid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
             method: 'POST',
             json: true,
             body: JSON.stringify(param),
@@ -48,6 +110,39 @@ export default class WebService {
         })
     }
 
+    //FOR LOCATE
+    //#URl: /locate
+    getRequest(requestid) {
+        const action = 'request'
+        const param = {
+            requestid: requestid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/locate/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+
+    located(lat, lng, id) {
+        const action = 'located'
+        const param = {
+            lat: lat,
+            lng: lng,
+            id: id
+        }
+        return this.fetchDataApi(`${this.apiDomain}/locate/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+
+    //FOR MAP_API
     getPlace(place) {
         const param = {
             address: place,
@@ -161,13 +256,14 @@ export default class WebService {
 
             fetch(url, {
                 ...options,
-                headers:{
+                headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json"
                 }
             }).then(this.checkStatus).then(
-                response => { 
-                    resolve(response.json()) },
+                response => {
+                    resolve(response.json())
+                },
                 err => reject(err)
             ).catch(error => {
                 reject(error)
@@ -191,8 +287,9 @@ export default class WebService {
             fetch(url, {
                 ...options,
             }).then(this.checkStatus).then(
-                response => { 
-                    resolve(response.json()) },
+                response => {
+                    resolve(response.json())
+                },
                 err => reject(err)
             ).catch(error => {
                 reject(error)

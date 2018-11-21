@@ -15,15 +15,16 @@ class LocateIdentify extends Component {
     this.onUserChange = this.onUserChange.bind(this);
     this.onUserRemove = this.onUserRemove.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.handleDataApi = this.handleDataApi.bind(this);
+    this.selfUserList = sessionStorage.getItem('userList') != null ? JSON.parse(sessionStorage.getItem('userList')) : [];
+    this.selfUserNum = sessionStorage.getItem('userNum') != null ? sessionStorage.getItem('userNum') : 0;
     this.state = {
       userList: [],
       userSelect: '',
       userNum: 0,
-      isLoading: false
     }
     this.webService = new WebService();
     this.userList = [];
-    this.count = 0;
     this.io = null;
   }
   componentWillMount() {
@@ -50,6 +51,7 @@ class LocateIdentify extends Component {
           phone: self.webService.getPhoneNum()
         }
       });
+      self.initState()
       return;
     } else if (this.webService.isAdmin()) {
       this.props.history.push('/admin')
@@ -65,41 +67,68 @@ class LocateIdentify extends Component {
       return;
     }
   }
+  initSelfData(userList, userNum) {
+    sessionStorage.setItem('userList', JSON.stringify(userList))
+    sessionStorage.setItem('userNum', userNum)
+  }
+  initState() {
+    this.setState({
+      userList: this.selfUserList,
+      userNum: this.selfUserNum
+    }, () => {
+      this.userList = this.state.userList
+    })
+  }
   handleDataSocket() {
     const self = this
-    self.io.on('server-send-place-locate', function (data) {
-      if (data) {
-        let userDet = {
-          id: data.id,
-          requestid: data.requestid,
-          name: data.data.name,
-          phone: data.data.phone,
-          addrCur: data.data.place,
-          note: data.data.note,
-          addrAutoRev: '',
-          addrRev: '',
-          center: {
-            lat: '',
-            lng: ''
-          }
-        }
-        self.webService.getPlace(data.data.place)
+    self.io.on('server-send-place-locate', function (reqId) {
+      if (reqId) {
+        console.log(reqId)
+        self.webService.getRequest(reqId)
           .then(res => {
-            userDet.addrAutoRev = res.results[0].formatted_address;
-            userDet.center = res.results[0].geometry.location;
-            self.userList.push(userDet);
-            self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
-            })
+            if (res === 'No request') {
+              self.props.popup({ title: res, mess: '' })
+            } else {
+              self.handleDataApi(res)
+            }
           }).catch(() => {
-            userDet.center.lat = 10.801940;
-            userDet.center.lng = 106.738449;
-            self.userList.push(userDet);
-            self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
-            })
+            self.props.popup({ title: 'Lỗi', mess: '' })
           })
       }
     })
-
+  }
+  handleDataApi(res) {
+    const self = this
+    let userDet = {
+      userid: res.userid,
+      requestid: res.requestid,
+      name: res.username,
+      phone: res.userphone,
+      addrCur: res.place,
+      note: res.note,
+      addrAutoRev: '',
+      addrRev: '',
+      center: {
+        lat: '',
+        lng: ''
+      }
+    }
+    self.webService.getPlace(res.place)
+      .then(res => {
+        userDet.addrAutoRev = res.results[0].formatted_address;
+        userDet.center = res.results[0].geometry.location;
+        self.userList.push(userDet);
+        self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
+          self.initSelfData(self.state.userList, self.state.userNum)
+        })
+      }).catch(() => {
+        userDet.center.lat = 10.801940;
+        userDet.center.lng = 106.738449;
+        self.userList.push(userDet);
+        self.setState({ userList: self.userList, userNum: self.userList.length }, () => {
+          self.initSelfData(self.state.userList, self.state.userNum)
+        })
+      })
   }
   onUserNum(value) {
     this.setState({ userNum: value })
@@ -127,24 +156,21 @@ class LocateIdentify extends Component {
       return index === user
     })
     let result = {
-      socketid: userSel[0].id,
       requestid: userSel[0].requestid,
-      name: userSel[0].name,
-      phone: userSel[0].phone,
-      addr: {
-        addrCur: userSel[0].addrCur,
-        center: {
-          lat: userSel[0].center.lat,
-          lng: userSel[0].center.lng
-        }
-      } 
+      lat: userSel[0].center.lat,
+      lng: userSel[0].center.lng
     }
     self.setState({
       userList: userList,
     }, () => {
-      console.log(result.socketid)
       self.userList = self.state.userList
-      self.io.emit('locate-send-result', result)
+      self.initSelfData(self.state.userList, self.state.userList.length)
+      self.webService.located(result.lat, result.lng, result.requestid)
+        .then(res => {
+          if (res === 'Located'){
+          self.io.emit('locate-send-result', result.requestid)
+          }
+        })
     })
   }
   render() {
@@ -223,7 +249,7 @@ const GoogleMapExample = withGoogleMap(props => (
     {props.userList.map((userMarker, index) => {
       return (
         <div key={index}>
-          <Marker position={userMarker.center} icon={markerIco} onClick={props.userSelect === index ? props.onMapClick : null} />
+         <Marker position={userMarker.center} icon={markerIco} label={userMarker.name + ' --- id:' + userMarker.userid} onClick={props.userSelect === index ? props.onMapClick : null} />
         </div>
       )
     })

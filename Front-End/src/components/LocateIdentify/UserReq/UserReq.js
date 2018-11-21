@@ -16,8 +16,10 @@ class UserReq extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const newUserList = nextProps.userList;
-    this.setState({ userList: newUserList })
+    if (nextProps.userList) {
+      const newUserList = nextProps.userList;
+      this.setState({ userList: newUserList })
+    }
   }
   onUserSel(index) {
     this.setState({ userSelect: index }, () => {
@@ -33,7 +35,7 @@ class UserReq extends Component {
     }
   }
   render() {
-    const userList = this.state.userList
+    const userList = this.state.userList ? this.state.userList : [] 
     return (
       <div>
         <ul className="sidebar navbar-nav">
@@ -43,7 +45,7 @@ class UserReq extends Component {
                 userList.map((data, index) => {
                   return (
                     <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
-                      <UserBox num={index} address={data.addrCur} />
+                      <UserBox num={data.userid} address={data.addrCur} name={data.name} />
                     </div>
                   )
                 })

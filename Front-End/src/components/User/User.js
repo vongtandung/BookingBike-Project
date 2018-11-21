@@ -64,6 +64,9 @@ class User extends Component {
   handleDataSocket() {
     const self = this;
     self.io.on('server-send-response-user', function (data) {
+      if (data){
+      }
+      //call APi getDriveInfo data: 
       self.props.popup({
         title: 'Tài xế ' + data.name + ' đã nhận',
         mess: 'Số điện thoại: ' + data.driverphone
@@ -105,7 +108,6 @@ class User extends Component {
       localStorage.setItem('isBook', self.state.isBook)
     });
     this.io.emit('user-send-place', userInf)
-    //alert("test");
   }
   render() {
     return (
