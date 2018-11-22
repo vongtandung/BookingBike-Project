@@ -67,20 +67,37 @@ class User extends Component {
     const self = this;
     self.io.on('server-send-success-response-user', function (driverid) {
       if (driverid) {
-        self.webService.getDriverInfo(driverid)
-          .then(res => {
-            self.props.popup({
-              title: 'Tài xế ' + res.driverName + ' đã nhận',
-              mess: 'Số điện thoại: ' + res.driverPhone
-            })
-          })
+        self.handleDriverInfApi(driverid)
       }
     })
     self.io.on('server-send-fail-response-user', function () {
-      self.props.popup({
-        title: 'Không tìm thấy tài xế',
+      self.setState({ isBook: false }, () => {
+        self.props.popup({
+          title: 'Không tìm thấy tài xế',
+        })
       })
     })
+  }
+  handleDriverInfApi(driverid) {
+    const self = this;
+    self.webService.getDriverInfo(driverid)
+      .then(res => {
+        self.props.popup({
+          title: 'Tài xế ' + res.driverName + ' đã nhận',
+          mess: 'Số điện thoại: ' + res.driverPhone
+        })
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
   }
   initState() {
     const self = this

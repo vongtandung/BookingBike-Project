@@ -13,6 +13,9 @@ class Driver extends Component {
     super(props);
     this.handleCurLocate = this.handleCurLocate.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.handleReqInfApi = this.handleReqInfApi.bind(this);
+    this.handleReqAccApi = this.handleReqAccApi.bind(this);
+    this.handleReqFinApi = this.handleReqFinApi.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
     this.onShowPopupWarn = this.onShowPopupWarn.bind(this);
     this.onClosePopupWarn = this.onClosePopupWarn.bind(this);
@@ -27,11 +30,11 @@ class Driver extends Component {
       btnState: false,
       btnStateTitle: "Bắt đầu",
       reqAccept: false,
+      isProcess: false,
       curLocate: {
         lat: 0,
         lng: 0
       },
-      isProcess: false,
       popupReq: {
         show: false,
         popupType: true,
@@ -43,8 +46,10 @@ class Driver extends Component {
         addr: '',
         name: '',
         phone: '',
-        lat: 0,
-        lng: 0
+        center: {
+          lat: 0,
+          lng: 0
+        }
       }
     }
     this.driverRes = {
@@ -106,7 +111,6 @@ class Driver extends Component {
     if (window.navigator) {
       if (window.navigator.permissions) {
         window.navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
-          console.log(result.state)
           if (result.state === 'granted') {
             permission = result.state
             return
@@ -139,31 +143,109 @@ class Driver extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (reqId) {
+      console.log(reqId)
       if (reqId) {
-        self.webService.getRequestInfo(reqId)
-          .then(res => {
-            self.setState({
-              popupReq: {
-                ...self.state.popupReq,
-                show: true,
-                popupType: true,
-                title: res.username,
-                mess: res.place + '|' + res.userphone
-              },
-              userDet: {
-                ...self.state.userDet,
-                reqId: res.requestid,
-                addr: res.place,
-                name: res.username,
-                phone: res.userphone
-              }
-            }, () => {
-              self.onTimeOutReq()
-              self.driverRes.userphone = res.userphone
-            })
-          })
+        self.handleReqInfApi(reqId)
       }
     })
+  }
+  handleReqInfApi(reqId) {
+    const self = this
+    self.webService.getRequestInfo(reqId)
+      .then(res => {
+        self.setState({
+          popupReq: {
+            ...self.state.popupReq,
+            show: true,
+            popupType: true,
+            title: res.username,
+            mess: res.place + '|' + res.userphone
+          },
+          userDet: {
+            ...self.state.userDet,
+            reqId: res.requestid,
+            addr: res.place,
+            name: res.username,
+            phone: res.userphone,
+            center: {
+              ...self.state.userDet.center,
+              lat: res.lat,
+              lng: res.lng
+            }
+          }
+        }, () => {
+          self.onTimeOutReq()
+          self.driverRes.userphone = res.userphone
+        })
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleReqAccApi(reqId) {
+    const self = this;
+    self.webService.acceptRequest(self.driverRes.driverid, self.state.userDet.reqId)
+      .then(res => {
+        self.setState({
+          popupReq: {
+            ...self.state.popupReq,
+            show: false,
+            title: '',
+            mess: ''
+          },
+          reqAccept: true
+        }, () => {
+          if (res.mess === 'OK') {
+            let params = {
+              requestid: reqId,
+              mess: 'accept'
+            }
+            self.io.emit('driver-send-response', params)
+          }
+        })
+
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleReqFinApi() {
+    const self = this
+    self.webService.driverFinish(self.state.userDet.reqId, self.driverRes.driverid)
+      .then(res => {
+        if (res && res.mess === 'OK') {
+          self.setState({
+            reqAccept: false,
+          })
+        }
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
   }
   onTimeOutReq() {
     if (this.state.popupReq.show === true) {
@@ -200,31 +282,12 @@ class Driver extends Component {
     })
   }
   onConfirmPopup() {
-    const self = this
     const reqId = this.state.userDet.reqId
     if (this.state.popupReq.popupType === true) {
-      self.setState({
-        popupReq: {
-          ...self.state.popupReq,
-          show: false,
-          title: '',
-          mess: ''
-        },
-      }, () => {
-        self.webService.acceptRequest(self.driverRes.driverid, self.state.userDet.reqId)
-          .then(res => {
-            if (res.mess === 'OK') {
-              let params = {
-                requestid: reqId,
-                mess: 'accept'
-              }
-              self.io.emit('driver-send-response', params)
-            }
-          })
-      })
+      this.handleReqAccApi(reqId)
     } else if (this.state.popupReq.popupType === false) {
       if (this.state.curLocate.lat === 0) {
-        this.handleCurLocate()
+        this.handleCurLocate(reqId)
       }
     }
   }
@@ -259,18 +322,21 @@ class Driver extends Component {
     this.revLocate.lng = center.lng
   }
   changeSwitch(state) {// call api Update state
-    this.setState({ switchState: state });
+    this.setState({
+      switchState: state
+    }, () => {
+      //this.webService.updateState()
+    });
   }
   changeState(e) {
     e.preventDefault();
-    this.setState({
-      reqAccept: true
-    }, () => console.log(this.state.reqAccept))
-
     const state = this.state.btnState;
     this.setState({ btnState: !state }, () => {
       if (this.state.btnState === true) {
-        this.setState({ btnStateTitle: "Kết thúc" })
+        this.setState({ btnStateTitle: "Kết thúc" }
+          , () => {
+            this.handleReqFinApi()
+          })
       } else {
         this.setState({ btnStateTitle: "Bắt đầu" })
       }
@@ -281,7 +347,7 @@ class Driver extends Component {
       <div className="driver">
         <div className="btn-state">
           <div className="btn-box">
-            <button className="btn btn-danger btn-lg" ref="btn" onClick={this.changeState}>
+            <button disabled={!this.state.reqAccept} className="btn btn-danger btn-lg" ref="btn" onClick={this.changeState}>
               {this.state.btnStateTitle}
             </button>
             <div className="switch-state">
@@ -289,6 +355,7 @@ class Driver extends Component {
                 checked={this.state.switchState}
                 onChange={this.changeSwitch}
                 onColor="#53b27c"
+                disabled={this.state.reqAccept}
                 offColor="#c42817"
                 onHandleColor="#ffffff"
                 width={75}
@@ -338,7 +405,7 @@ class Driver extends Component {
         // imageWidth="400"
         // imageHeight="200"
         />
-        <Map center={this.state.curLocate} reqAccept={this.state.reqAccept} popup={this.props.popup} updateLocate={this.updateLocate} />
+        <Map center={this.state.curLocate} userCenter={this.state.userDet.center} reqAccept={this.state.reqAccept} popup={this.props.popup} updateLocate={this.updateLocate} />
       </div>
     );
   }
@@ -355,6 +422,10 @@ class Map extends Component {
         longitude: 0
       },
       geoCurrCenter: {
+        lat: null,
+        lng: null
+      },
+      userCurrCenter: {
         lat: null,
         lng: null
       },
@@ -381,28 +452,38 @@ class Map extends Component {
       })
     }
     if (nextProps.reqAccept && nextProps.reqAccept === true) {
-      this.drawDirection();
+      this.setState({
+        userCurrCenter: {
+          ...this.state.userCurrCenter,
+          lat: nextProps.userCenter.lat,
+          lng: nextProps.userCenter.lng
+        }
+      }, () => {
+        this.drawDirection();
+      })
     }
   }
   componentDidMount() {
     this.render();
   }
   getPoint(event) {
-    const distance = haversine(
-      {
-        latitude: event.latLng.lat(),
-        longitude: event.latLng.lng()
-      }, this.state.defaultCenter, { unit: 'meter' })
-    if (distance <= 100) {
-      this.setState({
-        geoCurrCenter: {
-          ...this.state.geoCurrCenter,
-          lat: event.latLng.lat(),
-          lng: event.latLng.lng()
-        }
-      })
-    } else {
-      this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
+    if (this.props.reqAccept === false) {
+      const distance = haversine(
+        {
+          latitude: event.latLng.lat(),
+          longitude: event.latLng.lng()
+        }, this.state.defaultCenter, { unit: 'meter' })
+      if (distance <= 100) {
+        this.setState({
+          geoCurrCenter: {
+            ...this.state.geoCurrCenter,
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng()
+          }
+        })
+      } else {
+        this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
+      }
     }
     this.props.updateLocate(this.state.geoCurrCenter)
   }
@@ -410,7 +491,7 @@ class Map extends Component {
     const DirectionsService = new window.google.maps.DirectionsService();
     DirectionsService.route({
       origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
-      destination: new window.google.maps.LatLng(10.802670, 106.645150),
+      destination: new window.google.maps.LatLng(this.state.userCurrCenter.lat, this.state.userCurrCenter.lng),
       provideRouteAlternatives: true,
       avoidTolls: true,
       avoidHighways: true,
@@ -436,6 +517,7 @@ class Map extends Component {
           mapElement={<div style={{ height: `90%` }} />}
           onMapClick={this.getPoint}
           geoCurrCenter={this.state.geoCurrCenter}
+          userCurrCenter={this.state.userCurrCenter}
           zoom={this.state.zoom}
           directions={this.state.directions}
           marker={this.state.marker}
@@ -453,7 +535,8 @@ const GoogleMapExample = withGoogleMap(props => (
     onClick={props.onMapClick}
   >
     {props.directions && <DirectionsRenderer directions={props.directions} options={{ suppressMarkers: true }} />}
-    <Marker position={props.geoCurrCenter} icon={markerIco} onClick={props.onMarkerClick} />
+    {props.geoCurrCenter.lat != null && <Marker position={props.geoCurrCenter} icon={markerIco} label={'Tài xế'} onClick={props.onMarkerClick} />}
+    {props.userCurrCenter.lat != null && <Marker position={props.userCurrCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>
 ));
 

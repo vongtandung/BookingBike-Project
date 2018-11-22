@@ -16,7 +16,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 require('./socket')
-app.use('/api/user/', userCtrl);
+app.use('/api/user/',verifyAccessToken, userCtrl);
 app.use('/api/driver/',verifyAccessToken, driverCtrl);
 app.use('/api/login/', loginCtrl);
 app.use('/api/admin/',verifyAccessToken, adminCtrl);

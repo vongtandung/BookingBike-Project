@@ -15,7 +15,9 @@ class LocateIdentify extends Component {
     this.onUserChange = this.onUserChange.bind(this);
     this.onUserRemove = this.onUserRemove.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
-    this.handleDataApi = this.handleDataApi.bind(this);
+    this.handleRequestApi = this.handleRequestApi.bind(this);
+    this.handleLocatedApi = this.handleLocatedApi.bind(this);
+    this.handleMapApi = this.handleMapApi.bind(this);
     this.selfUserList = sessionStorage.getItem('userList') != null ? JSON.parse(sessionStorage.getItem('userList')) : [];
     this.selfUserNum = sessionStorage.getItem('userNum') != null ? sessionStorage.getItem('userNum') : 0;
     this.state = {
@@ -82,22 +84,55 @@ class LocateIdentify extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-place-locate', function (reqId) {
+      console.log('ok')
       if (reqId) {
-        self.webService.getRequest(reqId)
-          .then(res => {
-            if (res === 'No request') {
-              self.props.popup({ title: res, mess: '' })
-            } else {
-              self.handleDataApi(res)
-            }
-          }).catch((err) => {
-            console.log(err)
-            self.props.popup({ title: 'Lỗi', mess: '' })
-          })
+        self.handleRequestApi(reqId)
       }
     })
   }
-  handleDataApi(res) {
+  handleRequestApi(reqId) {
+    const self = this
+    self.webService.getRequest(reqId)
+      .then(res => {
+        if (res === 'No request') {
+          self.props.popup({ title: res, mess: '' })
+        } else {
+          self.handleMapApi(res)
+        }
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleLocatedApi(lat, lng, requestid) {
+    const self = this
+    self.webService.located(lat, lng, requestid)
+      .then(res => {
+        if (res === 'Located') {
+          self.io.emit('locate-send-result', requestid)
+        }
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleMapApi(res) {
     const self = this
     let userDet = {
       userid: res.userid,
@@ -165,12 +200,7 @@ class LocateIdentify extends Component {
     }, () => {
       self.userList = self.state.userList
       self.initSelfData(self.state.userList, self.state.userList.length)
-      self.webService.located(result.lat, result.lng, result.requestid)
-        .then(res => {
-          if (res === 'Located'){
-          self.io.emit('locate-send-result', result.requestid)
-          }
-        })
+      self.handleLocatedApi(result.lat, result.lng, result.requestid)
     })
   }
   render() {
@@ -249,7 +279,7 @@ const GoogleMapExample = withGoogleMap(props => (
     {props.userList.map((userMarker, index) => {
       return (
         <div key={index}>
-         <Marker position={userMarker.center} icon={markerIco} label={userMarker.name + ' --- id:' + userMarker.userid} onClick={props.userSelect === index ? props.onMapClick : null} />
+          <Marker position={userMarker.center} icon={markerIco} label={userMarker.name + ' --- id:' + userMarker.userid} onClick={props.userSelect === index ? props.onMapClick : null} />
         </div>
       )
     })
