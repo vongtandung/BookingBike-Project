@@ -32,6 +32,10 @@ exports.getInfor = id => {
 	return db.insert(sql);
 }
 exports.getUserByRequestId = requestid =>{
-    var sql = `select idUser from request where id = '${requestid}'`;
+    var sql = `select * from request where id = '${requestid}'`;
+	return db.load(sql);
+}
+exports.getLatLngByRequestId = requestid =>{
+    var sql = `select * from request where id = '${requestid}'`;
 	return db.load(sql);
 }

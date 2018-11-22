@@ -7,7 +7,7 @@ exports.updateState = (updatereq) => {
 };
 exports.updateRequest = request =>{
     console.log(request);
-    var sql = `update request set idDriver = '${request.driverid}', State='Waiting' where id = '${request.id}'`;
+    var sql = `update request set idDriver = '${request.driverid}', State='Waiting' where id = '${request.requestid}'`;
     return db.insert(sql);
 }
 exports.setBusy =(driverid) =>{
