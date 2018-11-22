@@ -2,6 +2,7 @@ var http = require("http").createServer();
 var socketPort = process.env.PORT || 3002;
 server = require("socket.io")(socketPort);
 requestRepo = require("../Back-End/repos/requestRepo");
+driverRepo = require("../Back-End/repos/driverRepo");
 var io = server;
 var arrayDriver = [];
 var arrayLocaIder = [];
@@ -38,38 +39,47 @@ io.on("connection", function(socket) {
     }
   }
   socket.on("driver-send-response", function(resp) {
+    console.log("chuoi tra ve");
+    console.log(resp);
     if (resp.mess === "accept") {
-     sendResultToUser("server-send-success-response-user", resp);
+      sendResultToUser(requestRepo,"server-send-success-response-user", resp.requestid);
     }
     if (resp.mess === "reject") {
-      if (listarr.length > 2) {
-        listarr.splice(0, 1);
+      console.log(Listarr);
+      if (Listarr.length > 2) {
+        Listarr.splice(0, 1);
         ele = arrayDriver.filter((per, index) => {
-          return per.id === listarr[0].driverid;
+          return per.id === Listarr[0].driverid;
         });
         for (i = 0; i < ele.length; i++) {
-          io.to(ele[i].socketid).emit("server-send-request-driver", resp.requestid);
+          io.to(ele[i].socketid).emit(
+            "server-send-request-driver",
+            resp.requestid
+          );
+          console.log("refind driver");
         }
       } else {
-        sendResultToUser("server-send-fail-response-user",resp.requestid);
+        sendResultToUser(requestRepo,"server-send-fail-response-user", resp.requestid);
       }
     }
   });
   socket.on("user-send-place", function(data) {
     if (arrayLocaIder.length > 0) {
       const index = Math.floor(Math.random() * arrayLocaIder.length + 0);
+      console.log("array kocate leng: " + arrayLocaIder.length);
       const request = {
         idUser: data.id,
         beginPlace: data.place,
         time: Date.now()
       };
-      console.log("array kocate leng: " + arrayLocaIder.length);
+      ele = arrayLocaIder.filter((per, index) => {
+        return per.id === arrayLocaIder[index].id;
+      });
       requestRepo.addRequest(request).then(
         requestRepo.getRequestId(data.phone).then(row => {
-          io.to(arrayLocaIder[index].socketid).emit(
-            "server-send-place-locate",
-            row[0].id
-          );
+          for (i = 0; i < ele.length; i++) {
+            io.to(ele[i].socketid).emit("server-send-place-locate", row[0].id);
+          }
         })
       );
     } else {
@@ -77,46 +87,43 @@ io.on("connection", function(socket) {
     }
   });
   socket.on("locate-send-result", function(requestid) {
-    listarr = getDriverListSorted();
-    if (listarr.length > 0) {
-      ele = arrayDriver.filter((per, index) => {
-        return per.id === listarr[0].driverid;
-      });
-      for (i = 0; i < ele.length; i++) {
-        io.to(ele[i].socketid).emit("server-send-request-driver", requestid);
-      }
-    } else {
-      sendResultToUser("server-send-fail-response-user",requestid);
-    }
+
+    sendDriverByListSorted(arrayDriver, requestid).then(arr =>{Listarr = arr})
+   
   });
 
   socket.on("disconnect", function() {
-    if (person.permission === "2") {
-      ele = arrayLocaIder.filter((per, index) => {
-        return per.socketid === socket.id;
-      });
+    ele = arrayLocaIder.filter((per, index) => {
+      return per.socketid === socket.id;
+    });
+    if (ele[0] != null) {
+      console.log("1" + socket.id);
       arrayLocaIder.splice(arrayLocaIder.indexOf(ele[0]), 1);
     } else {
-      if (person.permission === "3") {
-        ele = arrayManager.filter((per, index) => {
-          return per.socketid === socket.id;
-        });
+      ele2 = arrayManager.filter((per, index) => {
+        return per.socketid === socket.id;
+      });
+      if (ele2[0] !== null) {
+        console.log("2" + socket.id);
         arrayManager.splice(arrayManager.indexOf(ele[0]), 1);
       } else {
-        if (person.permission === "4") {
-          ele = arrayDriver.filter((per, index) => {
-            return per.socketid === socket.id;
-          });
+        ele2 = arrayDriver.filter((per, index) => {
+          return per.socketid === socket.id;
+        });
+        if (ele2[0] != null) {
+          console.log("3" + socket.id);
           arrayDriver.splice(arrayDriver.indexOf(ele[0]), 1);
         } else {
-          ele = arrayUser.filter((per, index) => {
+          ele2 = arrayUser.filter((per, index) => {
             return per.socketid === socket.id;
           });
-          arrayUser.splice(arrayUser.indexOf(ele[0]), 1);
+          if (ele2[0] !== null) {
+            console.log("4" + socket.id);
+            arrayUser.splice(arrayUser.indexOf(ele[0]), 1);
+          }
         }
       }
     }
-    console.log(person.socketid + "is disconect");
   });
 });
 
@@ -146,38 +153,51 @@ function distanceWithHaversin(lat1, lon1, lat2, lon2) {
 function toRadians(Value) {
   return (Value * Math.PI) / 180;
 }
-function getDriverListSorted() {
-  driverRepo.getAllDriverLocate().then(row => {
-    if (row.length > 0) {
-      for (i = 0; i < row.length; i++) {
-        row[i].distance = distanceWithHaversin(
-          req.body.lat,
-          req.body.lng,
-          row[i].lat,
-          row[i].lng
-        );
-      }
-      return row.sort(function(a, b) {
-        var x = a.distance;
-        var y = b.distance;
-        if (x < y) {
-          return -1;
+function sendDriverByListSorted(array, requestId) {
+  return new Promise((resolve, reject) =>{
+    requestRepo.getLatLngByRequestId(requestId).then(locate => {
+      driverRepo.getAllDriverLocate().then(row => {
+        if (row.length > 0) {
+          for (i = 0; i < row.length; i++) {
+            row[i].distance = distanceWithHaversin(
+              parseFloat(locate[0].lat),
+              parseFloat(locate[0].lng),
+              row[i].lat,
+              row[i].lng
+            );
+          }
+          row.sort(function(a, b) {
+            var x = a.distance;
+            var y = b.distance;
+            if (x < y) {
+              return -1;
+            } else {
+              return 1;
+            }
+          });
+          ele = array.filter((per, index) => {
+            return per.id == row[0].driverid;
+          });
+          for (i = 0; i < ele.length; i++) {
+            io.to(ele[i].socketid).emit("server-send-request-driver", requestId);
+          }
         } else {
-          return 1;
+          sendResultToUser(requestRepo,"server-send-fail-response-user", requestId);
         }
+        resolve(row)
       });
-    } else {
-      return;
-    }
-  });
+    })
+  })
+  
 }
-function sendResultToUser(event, requestid){
-  requestRepo.getUserByRequestId(requestid).then(row => {
+function sendResultToUser(repo ,event, id) {
+  repo.getUserByRequestId(id).then(row => {
     ele = arrayUser.filter((per, index) => {
-      return per.id === row[0].idUser;
+      return per.id == row[0].idUser;
     });
+    console.log(row[0]);
     for (i = 0; i < ele.length; i++) {
-      io.to(ele[i].id).emit(event, requestid);
+      io.to(ele[i].socketid).emit(event, row[0].idDriver);
     }
   });
 }
