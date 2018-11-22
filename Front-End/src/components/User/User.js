@@ -27,7 +27,9 @@ class User extends Component {
     this.initData();
   }
   componentDidMount() {
-    this.handleDataSocket()
+    if (this.io != null) {
+      this.handleDataSocket()
+    }
   }
   componentWillUnmount() {
     if (this.io != null) {
@@ -51,7 +53,7 @@ class User extends Component {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
-          phone: self.webService.getPhoneNum()
+          id: self.webService.getIdUser()
         }
       });
       self.initState()
@@ -63,13 +65,20 @@ class User extends Component {
   }
   handleDataSocket() {
     const self = this;
-    self.io.on('server-send-response-user', function (data) {
-      if (data){
+    self.io.on('server-send-success-response-user', function (driverid) {
+      if (driverid) {
+        self.webService.getDriverInfo(driverid)
+          .then(res => {
+            self.props.popup({
+              title: 'Tài xế ' + res.driverName + ' đã nhận',
+              mess: 'Số điện thoại: ' + res.driverPhone
+            })
+          })
       }
-      //call APi getDriveInfo data: 
+    })
+    self.io.on('server-send-fail-response-user', function () {
       self.props.popup({
-        title: 'Tài xế ' + data.name + ' đã nhận',
-        mess: 'Số điện thoại: ' + data.driverphone
+        title: 'Không tìm thấy tài xế',
       })
     })
   }

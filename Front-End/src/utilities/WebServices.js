@@ -3,9 +3,9 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://localhost:3001/api'  // API server domain
+        this.apiDomain = domain || 'http://192.168.43.43:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
-        this.sokDomain = 'http://localhost:3002'
+        this.sokDomain = 'http://192.168.43.43:3002'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff
         this.fetchDataMap = this.fetchDataMap.bind(this) // React binding stuff
@@ -122,7 +122,10 @@ export default class WebService {
             json: true,
             body: JSON.stringify(param),
         }).then(res => {
+            console.log(res)
             return res;
+        }).catch(error =>{
+            console.log(error)
         })
     }
 
@@ -293,7 +296,7 @@ export default class WebService {
                 },
                 err => reject(err)
             ).catch(error => {
-                reject(error)
+                reject(error.json())
             }).finally(() => clearTimeout(timer));
         })
     }
@@ -302,6 +305,8 @@ export default class WebService {
         // raises an error in case response status is not a success
         if (response.status >= 200 && response.status < 300) { // Success status lies between 200 to 300
             return response
+        } else if (response.status === 401){
+            throw response
         } else {
             let error = new Error(response.statusText)
             error.response = response

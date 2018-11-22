@@ -48,7 +48,7 @@ class LocateIdentify extends Component {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
-          phone: self.webService.getPhoneNum()
+          id: self.webService.getIdUser()
         }
       });
       self.initState()
@@ -83,7 +83,6 @@ class LocateIdentify extends Component {
     const self = this
     self.io.on('server-send-place-locate', function (reqId) {
       if (reqId) {
-        console.log(reqId)
         self.webService.getRequest(reqId)
           .then(res => {
             if (res === 'No request') {
@@ -91,7 +90,8 @@ class LocateIdentify extends Component {
             } else {
               self.handleDataApi(res)
             }
-          }).catch(() => {
+          }).catch((err) => {
+            console.log(err)
             self.props.popup({ title: 'Lỗi', mess: '' })
           })
       }

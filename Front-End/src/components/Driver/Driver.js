@@ -18,6 +18,7 @@ class Driver extends Component {
     this.onClosePopupWarn = this.onClosePopupWarn.bind(this);
     this.onConfirmPopup = this.onConfirmPopup.bind(this);
     this.onClosePopupReq = this.onClosePopupReq.bind(this);
+    this.updateLocate = this.updateLocate.bind(this);
     this.changeSwitch = this.changeSwitch.bind(this);
     this.changeState = this.changeState.bind(this);
     this.webService = new WebService();
@@ -27,10 +28,6 @@ class Driver extends Component {
       btnStateTitle: "Bắt đầu",
       reqAccept: false,
       curLocate: {
-        lat: 0,
-        lng: 0
-      },
-      revLocate: {
         lat: 0,
         lng: 0
       },
@@ -45,7 +42,9 @@ class Driver extends Component {
         reqId: '',
         addr: '',
         name: '',
-        phone: ''
+        phone: '',
+        lat: 0,
+        lng: 0
       }
     }
     this.driverRes = {
@@ -54,6 +53,10 @@ class Driver extends Component {
       driverid: this.webService.getIdUser(),
       userphone: '',
       mess: ''
+    }
+    this.revLocate = {
+      lat: 0,
+      lng: 0
     }
     this.io = null
   }
@@ -88,7 +91,7 @@ class Driver extends Component {
         query: {
           permission: self.webService.getPermission(),
           name: self.webService.getUserName(),
-          phone: self.webService.getPhoneNum()
+          id: self.webService.getIdUser()
         }
       });
       return;
@@ -99,12 +102,18 @@ class Driver extends Component {
   }
   handleCurLocate() {
     const self = this
+    let permission = null
     if (window.navigator) {
       if (window.navigator.permissions) {
         window.navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
+          console.log(result.state)
           if (result.state === 'granted') {
+            permission = result.state
             return
           } else if (result.state === 'prompt' || result.state === 'denied') {
+            if (result.state === 'denied') {
+              permission = result.state
+            }
             self.onShowPopupWarn()
           }
         });
@@ -120,7 +129,10 @@ class Driver extends Component {
           self.onClosePopupWarn()
         })
       }, function () {
-        self.props.popup({ title: 'Không thể lấy được vị trí' })
+        if (permission != null && permission === 'denied') {
+        } else if (permission != null && permission === 'granted') {
+          self.props.popup({ title: 'Không thể lấy được vị trí' })
+        }
       }, { enableHighAccuracy: true })
     }
   }
@@ -134,7 +146,7 @@ class Driver extends Component {
               popupReq: {
                 ...self.state.popupReq,
                 show: true,
-                popupReq: true,
+                popupType: true,
                 title: res.username,
                 mess: res.place + '|' + res.userphone
               },
@@ -153,11 +165,13 @@ class Driver extends Component {
       }
     })
   }
-  handleDataApi
   onTimeOutReq() {
     if (this.state.popupReq.show === true) {
       setTimeout(() => {
-        this.onClosePopup()
+        if (this.state.popupReq.show === true) {
+          this.onClosePopupReq()
+          clearTimeout()
+        }
       }, 10000);
     }
   }
@@ -197,15 +211,16 @@ class Driver extends Component {
           mess: ''
         },
       }, () => {
-        self.webService.acceptRequest(self.state.driverRes.driverid, self.state.userDet.reqId)
-        .then(res =>{
-          console.log(res)
-        })
-        let params = {
-          requestid: reqId,
-          mess: 'accept'
-        }
-        self.io.emit('driver-send-response', params)
+        self.webService.acceptRequest(self.driverRes.driverid, self.state.userDet.reqId)
+          .then(res => {
+            if (res.mess === 'OK') {
+              let params = {
+                requestid: reqId,
+                mess: 'accept'
+              }
+              self.io.emit('driver-send-response', params)
+            }
+          })
       })
     } else if (this.state.popupReq.popupType === false) {
       if (this.state.curLocate.lat === 0) {
@@ -214,32 +229,34 @@ class Driver extends Component {
     }
   }
   onClosePopupReq() {
+    const self = this
     const reqId = this.state.userDet.reqId
-    this.setState({
+    self.setState({
+      popupReq: {
+        ...self.state.popupReq,
+        show: false,
+        title: '',
+        mess: ''
+      },
       userDet: {
-        ...this.state.userDet,
+        ...self.state.userDet,
         reqId: '',
         addr: '',
         name: '',
         phone: ''
       }
-    }, () =>{
+    }, () => {
       let params = {
         requestid: reqId,
         mess: 'reject'
       }
-      this.io.emit('driver-send-response', params)
+      self.io.emit('driver-send-response', params)
     })
 
   }
-  updateLocate(center){
-    this.setState({
-      revLocate: {
-        ...this.state.revLocate,
-        lat: center.lat,
-        lng: center.lng
-      }
-    })
+  updateLocate(center) {
+    this.revLocate.lat = center.lat
+    this.revLocate.lng = center.lng
   }
   changeSwitch(state) {// call api Update state
     this.setState({ switchState: state });
@@ -262,7 +279,6 @@ class Driver extends Component {
   render() {
     return (
       <div className="driver">
-
         <div className="btn-state">
           <div className="btn-box">
             <button className="btn btn-danger btn-lg" ref="btn" onClick={this.changeState}>
@@ -275,7 +291,7 @@ class Driver extends Component {
                 onColor="#53b27c"
                 offColor="#c42817"
                 onHandleColor="#ffffff"
-                width={70}
+                width={75}
                 height={35}
                 uncheckedIcon={
                   <div
@@ -316,12 +332,13 @@ class Driver extends Component {
           title={this.state.popupReq.title}
           text={this.state.popupReq.mess}
           onConfirm={this.onConfirmPopup}
+          onCancel={this.onClosePopupReq}
           showCancelButton={this.state.popupReq.popupType}
         // imageUrl="https://unsplash.it/400/200"
         // imageWidth="400"
         // imageHeight="200"
         />
-        <Map center={this.state.curLocate} reqAccept={this.state.reqAccept} popup={this.props.popup} curLocate={this.updateLocate} />
+        <Map center={this.state.curLocate} reqAccept={this.state.reqAccept} popup={this.props.popup} updateLocate={this.updateLocate} />
       </div>
     );
   }
@@ -383,15 +400,14 @@ class Map extends Component {
           lat: event.latLng.lat(),
           lng: event.latLng.lng()
         }
-      }, () => this.props.curLocate(this.state.geoCurrCenter))
+      })
     } else {
-      this.props.curLocate(this.state.defaultCenter)
       this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
     }
+    this.props.updateLocate(this.state.geoCurrCenter)
   }
   drawDirection() {
     const DirectionsService = new window.google.maps.DirectionsService();
-    console.log(this.state.geoCurrCenter.lat)
     DirectionsService.route({
       origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
       destination: new window.google.maps.LatLng(10.802670, 106.645150),
