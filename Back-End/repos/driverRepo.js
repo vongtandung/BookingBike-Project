@@ -19,6 +19,6 @@ exports.setFree =(driverid) =>{
     return db.insert(sql);
 }
 exports.getAllDriverLocate=()=>{
-    var sql = `select * from driverlocate where st=1`;
+    var sql = `select * from driverlocate where st = 1`;
     return db.load(sql);
 }

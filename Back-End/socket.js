@@ -8,7 +8,6 @@ var arrayDriver = [];
 var arrayLocaIder = [];
 var arrayManager = [];
 var arrayUser = [];
-const numberDriver = 5;
 io.on("connection", function(socket) {
   console.log(socket.id);
   console.log("name: " + socket.handshake.query.name);
@@ -46,8 +45,8 @@ io.on("connection", function(socket) {
     }
     if (resp.mess === "reject") {
       console.log(Listarr);
-      if (Listarr.length > 2) {
-        Listarr.splice(0, 1);
+      if (Listarr.length > 1) {
+        Listarr.shift();
         ele = arrayDriver.filter((per, index) => {
           return per.id === Listarr[0].driverid;
         });
@@ -175,6 +174,8 @@ function sendDriverByListSorted(array, requestId) {
               return 1;
             }
           });
+          var result = row.slice(0, config.MAXIMUM_DRIVER_REQUEST);
+          console.log(result);
           ele = array.filter((per, index) => {
             return per.id == row[0].driverid;
           });
@@ -184,7 +185,7 @@ function sendDriverByListSorted(array, requestId) {
         } else {
           sendResultToUser(requestRepo,"server-send-fail-response-user", requestId);
         }
-        resolve(row)
+        resolve(result)
       });
     })
   })

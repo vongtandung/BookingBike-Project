@@ -42,8 +42,7 @@ router.post('/',(req,res)=> {
 })
 router.post('/renewtoken', (req, res) => {
     var rToken = req.body.refreshToken;
-    authRepo.verifyRefreshToken(rToken)
-        .then(rows => {
+    authRepo.verifyRefreshToken(rToken).then(rows => {
             if (rows.length === 0) {
                 res.statusCode = 400;
                 res.json({
@@ -53,10 +52,11 @@ router.post('/renewtoken', (req, res) => {
                 throw new Error('abort-chain'); // break promise chain
 
             } else {
-                return rows[0].ID;
+                //console.log(rows[0]);
+                return rows[0].UserId;
             }
         })
-        .then(id => userRepo.load(id))
+        .then(id => loginRepo.load(id))
         .then(rows => {
             var userObj = rows[0];
             var token = authRepo.generateAccessToken(userObj);

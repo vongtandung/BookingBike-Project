@@ -8,3 +8,7 @@ exports.login = loginEntity => {
     var sql = `select * from user where UserName ='${loginEntity.user}' and PassWord = '${md5_pwd}' `;
     return db.load(sql);
 }
+exports.load = function(id) {
+    var sql = `select * from user where id = ${id}`;
+    return db.load(sql);
+}
