@@ -18,7 +18,7 @@ class UserBox extends Component {
                   <span className="user-name">User {this.props.num}: {this.props.name}</span>
                 </div>
                 <p className="addr"><u>Địa chỉ:</u> {this.props.address}</p>
-                <p className="addr"><u>Ghi chú:</u> {this.props.address}</p>
+                <p className="addr"><u>Ghi chú:</u> {this.props.note}</p>
               </div>
             </div>
           </div>

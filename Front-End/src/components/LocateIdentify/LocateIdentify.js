@@ -84,7 +84,6 @@ class LocateIdentify extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-place-locate', function (reqId) {
-      console.log('ok')
       if (reqId) {
         self.handleRequestApi(reqId)
       }

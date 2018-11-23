@@ -45,7 +45,7 @@ class UserReq extends Component {
                 userList.map((data, index) => {
                   return (
                     <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
-                      <UserBox num={data.userid} address={data.addrCur} name={data.name} />
+                      <UserBox num={data.userid} address={data.addrCur} name={data.name} note={data.note} />
                     </div>
                   )
                 })

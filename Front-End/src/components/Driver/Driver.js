@@ -16,6 +16,7 @@ class Driver extends Component {
     this.handleReqInfApi = this.handleReqInfApi.bind(this);
     this.handleReqAccApi = this.handleReqAccApi.bind(this);
     this.handleReqFinApi = this.handleReqFinApi.bind(this);
+    this.handleUpdStateApi = this.handleUpdStateApi.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
     this.onShowPopupWarn = this.onShowPopupWarn.bind(this);
     this.onClosePopupWarn = this.onClosePopupWarn.bind(this);
@@ -26,11 +27,11 @@ class Driver extends Component {
     this.changeState = this.changeState.bind(this);
     this.webService = new WebService();
     this.state = {
-      switchState: false,
+      switchState: true,
+      btnStateTitle: 'Bắt đầu',
       btnState: false,
-      btnStateTitle: "Bắt đầu",
       reqAccept: false,
-      isProcess: false,
+      isBusy: false,
       curLocate: {
         lat: 0,
         lng: 0
@@ -143,7 +144,6 @@ class Driver extends Component {
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (reqId) {
-      console.log(reqId)
       if (reqId) {
         self.handleReqInfApi(reqId)
       }
@@ -232,8 +232,45 @@ class Driver extends Component {
         if (res && res.mess === 'OK') {
           self.setState({
             reqAccept: false,
+            curLocate: {
+              ...self.state.curLocate,
+              lat: self.state.userDet.center.lat,
+              lng: self.state.userDet.center.lng
+            },
+            userDet: {
+              ...self.state.userDet,
+              reqId: '',
+              addr: '',
+              name: '',
+              phone: '',
+              center: {
+                ...self.state.userDet.center,
+                lat: 0,
+                lng: 0
+              }
+            }
+          }, () => {
+            self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '1', self.driverRes.driverid)
           })
         }
+      }).catch((error) => {
+        if (error === 401) {
+          // self.webService.renewToken(self.webService.getToken())
+          // .then(res =>{
+          //   console.log(res)
+          // })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleUpdStateApi(lat, lng, state, driverid) {
+    const self = this;
+    self.webService.updateState(self.state.curLocate.lat, self.state.curLocate.lng, state, self.driverRes.driverid)
+      .then(res => {
+
       }).catch((error) => {
         if (error === 401) {
           // self.webService.renewToken(self.webService.getToken())
@@ -306,7 +343,12 @@ class Driver extends Component {
         reqId: '',
         addr: '',
         name: '',
-        phone: ''
+        phone: '',
+        center: {
+          ...self.state.userDet.center,
+          lat: 0,
+          lng: 0
+        }
       }
     }, () => {
       let params = {
@@ -321,26 +363,46 @@ class Driver extends Component {
     this.revLocate.lat = center.lat
     this.revLocate.lng = center.lng
   }
-  changeSwitch(state) {// call api Update state
-    this.setState({
+  changeSwitch(state) {
+    const self = this
+    self.setState({
       switchState: state
     }, () => {
-      //this.webService.updateState()
+      if (self.state.switchState === true) {
+        self.setState({
+          isBusy: false
+        }, () => {
+          if (self.revLocate.lat !== 0 && self.revLocate.lng !== 0) {
+            self.handleUpdStateApi(self.revLocate.lat, self.revLocate.lng, '1', self.driverRes.driverid)
+          }
+          else {
+            self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '1', self.driverRes.driverid)
+          }
+        })
+      } else {
+        self.setState({
+          isBusy: true
+        }, () => {
+          if (self.revLocate.lat !== 0 && self.revLocate.lng !== 0) {
+            self.handleUpdStateApi(self.revLocate.lat, self.revLocate.lng, '0', self.driverRes.driverid)
+          }
+          else {
+            self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '0', self.driverRes.driverid)
+          }
+        })
+      }
     });
   }
   changeState(e) {
-    e.preventDefault();
-    const state = this.state.btnState;
-    this.setState({ btnState: !state }, () => {
-      if (this.state.btnState === true) {
-        this.setState({ btnStateTitle: "Kết thúc" }
-          , () => {
-            this.handleReqFinApi()
-          })
-      } else {
-        this.setState({ btnStateTitle: "Bắt đầu" })
-      }
-    })
+    this.setState({ btnState: !this.state.btnState },
+      () => {
+        if (this.state.btnState === true) {
+          this.setState({ btnStateTitle: 'Kết thúc' })
+        } else {
+          this.setState({ btnStateTitle: 'Bắt đầu' })
+          this.handleReqFinApi()
+        }
+      })
   }
   render() {
     return (
@@ -392,6 +454,9 @@ class Driver extends Component {
                 id="icon-switch"
               />
             </div>
+            <div className ="container-custom1">
+asdaaaaaa
+            </div>
           </div>
         </div>
         <SweetAlert
@@ -405,7 +470,7 @@ class Driver extends Component {
         // imageWidth="400"
         // imageHeight="200"
         />
-        <Map center={this.state.curLocate} userCenter={this.state.userDet.center} reqAccept={this.state.reqAccept} popup={this.props.popup} updateLocate={this.updateLocate} />
+        <Map center={this.state.curLocate} userCenter={this.state.userDet.center} reqAccept={this.state.reqAccept} isBusy={this.state.isBusy} popup={this.props.popup} updateLocate={this.updateLocate} />
       </div>
     );
   }
@@ -451,7 +516,7 @@ class Map extends Component {
         }
       })
     }
-    if (nextProps.reqAccept && nextProps.reqAccept === true) {
+    if (nextProps.reqAccept === true) {
       this.setState({
         userCurrCenter: {
           ...this.state.userCurrCenter,
@@ -461,6 +526,14 @@ class Map extends Component {
       }, () => {
         this.drawDirection();
       })
+    } else if (nextProps.reqAccept === false) {
+      this.setState({
+        userCurrCenter: {
+          ...this.state.userCurrCenter,
+          lat: null,
+          lng: null
+        }
+      })
     }
   }
   componentDidMount() {
@@ -468,45 +541,49 @@ class Map extends Component {
   }
   getPoint(event) {
     if (this.props.reqAccept === false) {
-      const distance = haversine(
-        {
-          latitude: event.latLng.lat(),
-          longitude: event.latLng.lng()
-        }, this.state.defaultCenter, { unit: 'meter' })
-      if (distance <= 100) {
-        this.setState({
-          geoCurrCenter: {
-            ...this.state.geoCurrCenter,
-            lat: event.latLng.lat(),
-            lng: event.latLng.lng()
-          }
-        })
-      } else {
-        this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
+      if (this.props.isBusy === false) {
+        const distance = haversine(
+          {
+            latitude: event.latLng.lat(),
+            longitude: event.latLng.lng()
+          }, this.state.defaultCenter, { unit: 'meter' })
+        if (distance <= 100) {
+          this.setState({
+            geoCurrCenter: {
+              ...this.state.geoCurrCenter,
+              lat: event.latLng.lat(),
+              lng: event.latLng.lng()
+            }
+          })
+        } else {
+          this.props.popup({ title: 'Không được phép điều chỉnh vị trí vượt quá 100m' })
+        }
       }
     }
     this.props.updateLocate(this.state.geoCurrCenter)
   }
   drawDirection() {
     const DirectionsService = new window.google.maps.DirectionsService();
-    DirectionsService.route({
-      origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
-      destination: new window.google.maps.LatLng(this.state.userCurrCenter.lat, this.state.userCurrCenter.lng),
-      provideRouteAlternatives: true,
-      avoidTolls: true,
-      avoidHighways: true,
-      travelMode: window.google.maps.TravelMode.DRIVING,
-      optimizeWaypoints: true,
-    }, (result, status) => {
-      if (status === window.google.maps.DirectionsStatus.OK) {
-        this.setState({
-          directions: result,
-          marker: true
-        }, () => console.log(result.routes));
-      } else {
-        console.error(`error fetching directions ${result}`);
-      }
-    });
+    if (this.state.userCurrCenter.lat != null) {
+      DirectionsService.route({
+        origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
+        destination: new window.google.maps.LatLng(this.state.userCurrCenter.lat, this.state.userCurrCenter.lng),
+        provideRouteAlternatives: true,
+        avoidTolls: true,
+        avoidHighways: true,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true,
+      }, (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          this.setState({
+            directions: result,
+            marker: true
+          }, () => { });
+        } else {
+          console.error(`error fetching directions ${result}`);
+        }
+      });
+    }
   }
   render() {
     return (
@@ -534,7 +611,7 @@ const GoogleMapExample = withGoogleMap(props => (
     options={mapOptions}
     onClick={props.onMapClick}
   >
-    {props.directions && <DirectionsRenderer directions={props.directions} options={{ suppressMarkers: true }} />}
+    {props.directions && props.userCurrCenter.lat != null && <DirectionsRenderer directions={props.directions} options={{ suppressMarkers: true }} />}
     {props.geoCurrCenter.lat != null && <Marker position={props.geoCurrCenter} icon={markerIco} label={'Tài xế'} onClick={props.onMarkerClick} />}
     {props.userCurrCenter.lat != null && <Marker position={props.userCurrCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>
