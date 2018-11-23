@@ -56,7 +56,9 @@ var express = require('express'),
                 note: row[0].Note,
                 userid: row[0].idUser,
                 userphone: row[0].PhoneNumber,
-                username: row[0].Name
+                username: row[0].Name,
+                lat: row[0].lat,
+                lng: row[0].lng
               });
             } else {
               res.json("request is not esxit ");
