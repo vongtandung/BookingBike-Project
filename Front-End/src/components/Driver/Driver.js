@@ -12,6 +12,7 @@ class Driver extends Component {
   constructor(props) {
     super(props);
     this.handleCurLocate = this.handleCurLocate.bind(this);
+    this.handleCurrLocateFinish = this.handleCurrLocateFinish.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
     this.handleInitInfApi = this.handleInitInfApi.bind(this);
     this.handleReqInfApi = this.handleReqInfApi.bind(this);
@@ -73,7 +74,7 @@ class Driver extends Component {
     this.io = null
   }
   componentWillMount() {
-    this.initData()
+   this.initData()
   }
   componentDidMount() {
     if (this.io != null) {
@@ -149,6 +150,20 @@ class Driver extends Component {
       }, { enableHighAccuracy: true })
     }
   }
+  handleCurrLocateFinish(){
+    const self = this;
+    window.navigator.geolocation.getCurrentPosition(function (data) {
+      self.setState({
+        curLocate: {
+          ...self.state.curLocate,
+          lat: data.coords.latitude,
+          lng: data.coords.longitude
+        }
+      })
+    }, function () {
+    }, { enableHighAccuracy: true })
+  }
+
   handleDataSocket() {
     const self = this
     self.io.on('server-send-request-driver', function (reqId) {
@@ -272,11 +287,6 @@ class Driver extends Component {
           let userIdTem = self.state.userDet.userId
           self.setState({
             reqAccept: false,
-            curLocate: {
-              ...self.state.curLocate,
-              lat: self.state.userDet.center.lat,
-              lng: self.state.userDet.center.lng
-            },
             userDet: {
               ...self.state.userDet,
               userId: '',
@@ -292,6 +302,7 @@ class Driver extends Component {
             }
           }, () => {
             self.io.emit('driver-finish', userIdTem)
+            self.handleCurrLocateFinish()
             self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '1', self.driverRes.driverid)
           })
         }
