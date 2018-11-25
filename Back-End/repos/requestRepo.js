@@ -4,7 +4,7 @@ var db = require('../fn/mysql-db');
 
 
 exports.addRequest = Request => {
-    var sql = `INSERT INTO request(idUser, BeginPlace,Time,State) VALUES( '${Request.idUser}','${Request.beginPlace}','${Request.time}',"requesting")`;
+    var sql = `INSERT INTO request(idUser, BeginPlace,Note,Time,State) VALUES( '${Request.idUser}','${Request.beginPlace}','${Request.note}',${Request.time},"requesting")`;
     return db.insert(sql);
 };
 exports.getrequest = (id) => {
@@ -20,7 +20,7 @@ exports.updateState = (state, id) => {
     return db.insert(sql);
 };
 exports.getRequestId = phone => {
-    var sql = `select request.id from request, user where user.PhoneNumber = '${phone}' ORDER BY request.Time DESC LIMIT 1`;
+    var sql = `select request.id from request, user where user.PhoneNumber = '${phone}' ORDER BY request.id DESC LIMIT 1`;
 	return db.load(sql);
 };
 exports.located = Request =>{

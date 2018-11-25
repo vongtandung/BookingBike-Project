@@ -20,7 +20,8 @@ router.post('/',(req,res)=> {
                         Name: userEntity.Name,
                         PhoneNumber: userEntity.PhoneNumber,
                         Permission: userEntity.Permission,
-                        access_token: acToken
+                        access_token: acToken,
+                        refresh_token: rfToken
                     })
                 })
                 .catch(err => {
@@ -36,7 +37,7 @@ router.post('/',(req,res)=> {
     })
     .catch(err => {
         console.log(err);
-        res.statusCode = 500;
+        res.statusCode = 20;
         res.end('View error log on console');
     })
 })
@@ -48,7 +49,6 @@ router.post('/renewtoken', (req, res) => {
                 res.json({
                     msg: 'invalid refresh-token'
                 });
-
                 throw new Error('abort-chain'); // break promise chain
 
             } else {

@@ -8,6 +8,7 @@ var arrayDriver = [];
 var arrayLocaIder = [];
 var arrayManager = [];
 var arrayUser = [];
+const MAXIMUM_DRIVER_REQUEST = 3;
 io.on("connection", function(socket) {
   console.log(socket.id);
   console.log("name: " + socket.handshake.query.name);
@@ -38,57 +39,74 @@ io.on("connection", function(socket) {
     }
   }
   socket.on("driver-send-response", function(resp) {
-    console.log("chuoi tra ve");
-    console.log(resp);
     if (resp.mess === "accept") {
-      sendResultToUser(requestRepo,"server-send-success-response-user", resp.requestid);
+      requestRepo.updateState("Accepted", resp.requestid).then(() => {
+        sendResultToUser(
+          requestRepo,
+          "server-send-success-response-user",
+          resp.requestid
+        );
+      });
     }
     if (resp.mess === "reject") {
-      console.log(Listarr);
       if (Listarr.length > 1) {
         Listarr.shift();
         ele = arrayDriver.filter((per, index) => {
-          return per.id === Listarr[0].driverid;
+          return per.id == Listarr[0].driverid;
         });
+        console.log("ele", ele);
         for (i = 0; i < ele.length; i++) {
           io.to(ele[i].socketid).emit(
             "server-send-request-driver",
             resp.requestid
           );
-          console.log("refind driver");
         }
       } else {
-        sendResultToUser(requestRepo,"server-send-fail-response-user", resp.requestid);
+        requestRepo
+          .updateState("Cancel", resp.requestid)
+          .then(
+            sendResultToUser(
+              requestRepo,
+              "server-send-fail-response-user",
+              resp.requestid
+            )
+          );
       }
     }
   });
+  socket.on("driver-finish", function(userid){
+    ele = arrayUser.filter((per, inde) => {
+      return per.id == userid;
+    });
+    for (i = 0; i < ele.length; i++) {
+      io.to(ele[i].socketid).emit("finish");
+    }
+  })
   socket.on("user-send-place", function(data) {
     if (arrayLocaIder.length > 0) {
       const index = Math.floor(Math.random() * arrayLocaIder.length + 0);
-      console.log("array kocate leng: " + arrayLocaIder.length);
       const request = {
         idUser: data.id,
         beginPlace: data.place,
+        note: data.note,
         time: Date.now()
       };
-      ele = arrayLocaIder.filter((per, index) => {
-        return per.id === arrayLocaIder[index].id;
+      ele = arrayLocaIder.filter((per, inde) => {
+        return per.id == arrayLocaIder[index].id;
       });
-      requestRepo.addRequest(request).then(
-        requestRepo.getRequestId(data.phone).then(row => {
-          for (i = 0; i < ele.length; i++) {
-            io.to(ele[i].socketid).emit("server-send-place-locate", row[0].id);
-          }
-        })
-      );
+      requestRepo.addRequest(request).then(row => {
+        for (i = 0; i < ele.length; i++) {
+          io.to(ele[i].socketid).emit("server-send-place-locate", row.insertId);
+        }
+      });
     } else {
       console.log("No location Identifier is on");
     }
   });
   socket.on("locate-send-result", function(requestid) {
-
-    sendDriverByListSorted(arrayDriver, requestid).then(arr =>{Listarr = arr})
-   
+    sendDriverByListSorted(arrayDriver, requestid).then(arr => {
+      Listarr = arr;
+    });
   });
 
   socket.on("disconnect", function() {
@@ -153,7 +171,7 @@ function toRadians(Value) {
   return (Value * Math.PI) / 180;
 }
 function sendDriverByListSorted(array, requestId) {
-  return new Promise((resolve, reject) =>{
+  return new Promise((resolve, reject) => {
     requestRepo.getLatLngByRequestId(requestId).then(locate => {
       driverRepo.getAllDriverLocate().then(row => {
         if (row.length > 0) {
@@ -174,29 +192,33 @@ function sendDriverByListSorted(array, requestId) {
               return 1;
             }
           });
-          var result = row.slice(0, config.MAXIMUM_DRIVER_REQUEST);
-          console.log(result);
+          var result = row.slice(0, MAXIMUM_DRIVER_REQUEST);
           ele = array.filter((per, index) => {
             return per.id == row[0].driverid;
           });
           for (i = 0; i < ele.length; i++) {
-            io.to(ele[i].socketid).emit("server-send-request-driver", requestId);
+            io.to(ele[i].socketid).emit(
+              "server-send-request-driver",
+              requestId
+            );
           }
         } else {
-          sendResultToUser(requestRepo,"server-send-fail-response-user", requestId);
+          sendResultToUser(
+            requestRepo,
+            "server-send-fail-response-user",
+            requestId
+          );
         }
-        resolve(result)
+        resolve(result);
       });
-    })
-  })
-  
+    });
+  });
 }
-function sendResultToUser(repo ,event, id) {
+function sendResultToUser(repo, event, id) {
   repo.getUserByRequestId(id).then(row => {
     ele = arrayUser.filter((per, index) => {
       return per.id == row[0].idUser;
     });
-    console.log(row[0]);
     for (i = 0; i < ele.length; i++) {
       io.to(ele[i].socketid).emit(event, row[0].idDriver);
     }
