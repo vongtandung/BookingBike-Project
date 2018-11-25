@@ -50,22 +50,25 @@ class LoginForm extends Component {
     const self = this;
     e.preventDefault();
     self.webService.login(e.target.username.value, e.target.password.value)
-    .then(res =>{
-      if (res) {
-        self.webService.setInfo(res.ID, res.Name, res.PhoneNumber, res.Permission, res.access_token);
-        if (res.Permission === 1){
-          self.props.history.push('/user');
-        } else if (res.Permission === 2){
-          self.props.history.push('/locate');
-        } else if (res.Permission === 3){
-          self.props.history.push('/admin');
-        }  else if (res.Permission === 4){
-          self.props.history.push('/driver');
+      .then(res => {
+        if (res.auth === true) {
+          self.webService.setInfo(res.ID, res.Name, res.PhoneNumber, res.Permission, res.access_token, res.refresh_token);
+          if (res.Permission === 1) {
+            self.props.history.push('/user');
+          } else if (res.Permission === 2) {
+            self.props.history.push('/locate');
+          } else if (res.Permission === 3) {
+            self.props.history.push('/admin');
+          } else if (res.Permission === 4) {
+            self.props.history.push('/driver');
+          }
         }
-      }
-    }).catch((err) =>{
-      self.props.popup({title: self.state.errTitle, mess: ''})
-    })
+        else {
+          self.props.popup({ title: 'Mật khẩu hoặc tài khoản không đúng', mess: '' })
+        }
+      }).catch((err) => {
+        self.props.popup({ title: self.state.errTitle, mess: '' })
+      })
   }
   render() {
     return (

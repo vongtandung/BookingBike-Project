@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { withGoogleMap, GoogleMap, Marker } from 'react-google-maps';
+import { withGoogleMap, GoogleMap, Marker, DirectionsRenderer } from 'react-google-maps';
 import io from 'socket.io-client';
 import HeaderManager from '../HeaderManager';
 import UserReq from './UserReq';
@@ -8,39 +8,52 @@ import "./Manager.css";
 import markerIco from '../../assets/images/marker-ico.png'
 
 class Manager extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.onUserNum = this.onUserNum.bind(this);
     this.onUserSelect = this.onUserSelect.bind(this);
-    this.onUserChange = this.onUserChange.bind(this);
-    this.onUserRemove = this.onUserRemove.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.handleGetAllReqApi = this.handleGetAllReqApi.bind(this);
     this.state = {
       userList: [],
       userSelect: '',
-      userNum: 0,
-      isLoading: true
+      userSelectData: null,
+      userNum: null
     }
     this.webService = new WebService();
-    this.io = io('http://localhost:3002');
+    this.userList = [];
+    this.callLoopApi = null
+    this.io = null;
   }
   componentWillMount() {
-    this.props.isLogged(true);
-    //this.initData()
+    this.initData();
   }
   componentDidMount() {
-    this.handleDataSocket();
+    if (this.io != null) {
+      this.handleDataSocket();
+    }
+  }
+  componentWillUnmount() {
+    clearInterval(this.callLoopApi)
+    if (this.io != null) {
+      this.io.close()
+    }
   }
   initData() {
-    if (this.webService.isLocate()) {
+    const self = this;
+    if (this.webService.isAdmin()) {
       this.props.isLogged(true);
-      this.io = io('http://localhost:3002');
-      this.io.emit('Manager-login', function () {
-        return true;
-      })
+      this.callLoopApi= setInterval(this.handleGetAllReqApi,2000)
+      self.io = io(this.webService.sokDomain, {
+        query: {
+          permission: self.webService.getPermission(),
+          name: self.webService.getUserName(),
+          id: self.webService.getIdUser()
+        }
+      });
       return;
-    } else if (this.webService.isAdmin()) {
-      this.props.history.push('/admin')
+    } else if (this.webService.isLocate()) {
+      this.props.history.push('/locate')
       return;
     } else if (this.webService.isDriver()) {
       this.props.history.push('/driver')
@@ -54,66 +67,68 @@ class Manager extends Component {
     }
   }
   handleDataSocket() {
+
+  }
+  handleGetAllReqApi() {
     const self = this
-    const userList = [...self.state.userList]
-    self.io.on('server-send-place2', function (data) {
-      let userDet = {
-        id: data.id,
-        addrCur: data.place.place,
-        addrAutoRev: '',
-        addrRev: '',
-        center: {
-          lat: '',
-          lng: ''
-        }
-      }
-      self.webService.getPlace(data.place.place)
-        .then(res => {
-          userDet.addrAutoRev = res.results[0].formatted_address;
-          userDet.center = res.results[0].geometry.location;
-          userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length })
-        }).catch(() => {
-          userDet.center.lat = 10.801940;
-          userDet.center.lng = 106.738449;
-          userList.push(userDet);
-          self.setState({ userList: userList, userNum: userList.length })
+    self.webService.getAllReq()
+      .then(res => {
+        self.setState({
+          userList: res,
+          userNum: res.length
+        }, () => {
         })
-    })
+      }).catch((error) => {
+        if (error === 401) {
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleGetAllReqApi()
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
   }
   onUserNum(value) {
     this.setState({ userNum: value })
   }
   onUserSelect(value) {
-    this.setState({ userSelect: value })
-  }
-  onUserChange(center, addrRev) {
-    let userSelect = this.state.userSelect;
-    if (userSelect !== '') {
-      const locateChange = this.state.userList;
-      locateChange[userSelect].center = center;
-      locateChange[userSelect].addrRev = addrRev;
-      this.setState({ userList: locateChange })
+    if (value.reqId === null) {
+      this.setState({
+        userSelect: '',
+        userSelectData: null
+      })
+    } else {
+      let userSel = this.state.userList
+      userSel = userSel.filter((data, index) => {
+        return data.id === value.reqId
+      })
+      this.setState({
+        userSelect: value,
+        userSelectData: {
+          driverLat: value.driverLat,
+          driverLng: value.driverLng,
+          userLat: userSel[0].UserLat,
+          userLng: userSel[0].UserLng,
+        }
+      })
     }
-  }
-  onUserRemove(user) {
-    let userList = this.state.userList
-    userList = userList.filter((_, index) => {
-      return index !== user
-    })
-    this.setState({
-      userList: userList,
-    })
   }
   render() {
     return (
-      <div>
-        <HeaderManager />
+      <div className="admin">
+        <HeaderManager name={this.webService.getUserName} />
         <div id="wrapper">
-          <UserReq userList={this.state.userList} userSelect={this.onUserSelect} userRemove={this.onUserRemove} />
+          <UserReq userList={this.state.userList} userSelect={this.onUserSelect} />
           <div id="content-wrapper">
             <div className="">
-              <Map userList={this.state.userList} userSelect={this.state.userSelect} onUserChange={this.onUserChange} />
+              <Map tripData={this.state.userSelectData} />
             </div>
           </div>
         </div>
@@ -125,46 +140,100 @@ class Manager extends Component {
 class Map extends Component {
   constructor(props) {
     super(props);
-    this.webService = new WebService();
-    this.getPoint = this.getPoint.bind(this);
+    this.drawDirection = this.drawDirection.bind(this)
     this.state = {
-      center: {
+      defaultCenter: {
         lat: 10.801940,
         lng: 106.738449
       },
-      zoom: 15
+      driverCenter: {
+        lat: null,
+        lng: null
+      },
+      userCenter: {
+        lat: null,
+        lng: null
+      },
+      zoom: 15,
+      directions: null,
+      marker: false
     }
   }
 
-  getPoint(event) {
-    const self = this;
-    const center = {
-      lat: event.latLng.lat(),
-      lng: event.latLng.lng()
-    }
-    self.webService.getPlaceRev(center)
-      .then(res => {
-        let address = '';
-        if (res.results[0].formatted_address) {
-          address = res.results[0].formatted_address;
-        }
-        self.setState({
-          center: center
-        }, () => { self.props.onUserChange(center, address) })
-      }).catch(error => { })
+  componentDidMount() {
+    this.render();
   }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.tripData === null) {
+      this.setState({
+        driverCenter: {
+          ...this.state.driverCenter,
+          lat: null,
+          lng: null
+        },
+        userCenter: {
+          ...this.state.userCenter,
+          lat: null,
+          lng: null
+        },
+        directions: null,
+        zoom: 15
+      })
+    } else {
+      this.setState({
+        driverCenter: {
+          ...this.state.driverCenter,
+          lat: nextProps.tripData.driverLat,
+          lng: nextProps.tripData.driverLng
+        },
+        userCenter: {
+          ...this.state.userCenter,
+          lat: nextProps.tripData.userLat,
+          lng: nextProps.tripData.userLng
+        },
+      }, () => {
+        this.drawDirection()
+      })
+    }
+  }
+  drawDirection() {
+    const DirectionsService = new window.google.maps.DirectionsService();
+    if (this.state.userCenter.lat != null) {
+      DirectionsService.route({
+        origin: new window.google.maps.LatLng(this.state.driverCenter.lat, this.state.driverCenter.lng),
+        destination: new window.google.maps.LatLng(this.state.userCenter.lat, this.state.userCenter.lng),
+        provideRouteAlternatives: true,
+        avoidTolls: true,
+        avoidHighways: true,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true,
+      }, (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK) {
+          this.setState({
+            directions: result,
+            marker: true
+          }, () => {
+            console.log(result.routes)
+          });
+        } else {
+          console.error(`error fetching directions ${result}`);
+        }
+      });
+    }
+  }
+
   render() {
     return (
       <div className="google-map">
         <GoogleMapExample
           loadingElement={<div style={{ height: `100%` }} />}
-          containerElement={<div style={{ height: `calc(100vh - 56px)` }} />}
+          containerElement={<div style={{ height: `95vh` }} />}
           mapElement={<div style={{ height: `100%` }} />}
-          onMapClick={this.getPoint}
-          center={this.state.center}
+          defaultCenter={this.state.defaultCenter}
+          driverCenter={this.state.driverCenter}
+          userCenter={this.state.userCenter}
           zoom={this.state.zoom}
-          userList={this.props.userList}
-          userSelect={this.props.userSelect}
+          directions={this.state.directions}
         />
       </div>
     );
@@ -173,22 +242,15 @@ class Map extends Component {
 
 const GoogleMapExample = withGoogleMap(props => (
   <GoogleMap
-    defaultCenter={props.center}
-    defaultZoom={props.zoom}
+    center={props.defaultCenter}
+    zoom={props.zoom}
     options={mapOptions}
-    onClick={props.userSelect !== '' ? props.onMapClick : null}
   >
-    {props.userList.map((userMarker, index) => {
-      return (
-        <div key={index}>
-          <Marker position={userMarker.center} icon={markerIco} onClick={props.userSelect === index ? props.onMapClick : null} />
-        </div>
-      )
-    })
-    }
+    {props.directions != null && <DirectionsRenderer directions={props.directions} routeIndex={2} options={{ suppressMarkers: true }} />}
+    {props.driverCenter.lat != null && <Marker position={props.driverCenter} icon={markerIco} label={'Tài xế'} />}
+    {props.userCenter.lat != null && <Marker position={props.userCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>
 ));
-
 
 const mapOptions = {
   panControl: false,

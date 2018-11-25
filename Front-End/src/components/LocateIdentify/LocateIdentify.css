@@ -21,6 +21,7 @@
   
   #wrapper #content-wrapper {
     overflow-x: hidden;
+    overflow-y: hidden;
     width: 100%;
   }
   

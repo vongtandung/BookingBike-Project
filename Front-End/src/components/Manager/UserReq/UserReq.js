@@ -5,9 +5,8 @@ import UserBox from '../UserBox';
 
 class UserReq extends Component {
   constructor(props) {
-    super(props);
-    this.onUserSel = this.onUserSel.bind(this);
-    this.onUserRemove = this.onUserRemove.bind(this);
+    super(props)
+    this.onUserIdSel = this.onUserIdSel.bind(this);
     this.state = {
       userList: [],
       userSelect: '',
@@ -16,42 +15,48 @@ class UserReq extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const newUserList = nextProps.userList;
-    this.setState({ userList: newUserList })
+    if (nextProps.userList && nextProps.userList !== this.props.userList) {
+      const newUserList = nextProps.userList;
+      this.setState({ userList: newUserList })
+    }
   }
-  onUserSel(index) {
-    this.setState({ userSelect: index }, () => {
-      this.props.userSelect(this.state.userSelect)
-    })
-  }
-  onUserRemove(index){
-    this.setState({ userSelect: '' }, () => {
-      this.props.userRemove(index)
-      this.props.userSelect(this.state.userSelect)
+  onUserIdSel(data) {
+    let dataSend ={
+      driverid: null,
+      reqId: null,
+      driverLat: null,
+      driverLng: null
+    }
+    if (data !== null){
+      dataSend.driverid = data.driverid
+      dataSend.reqId = data.reqId
+      dataSend.driverLat = data.driverLat
+      dataSend.driverLng = data.driverLng
+    }
+    this.setState({
+      userSelect: dataSend.reqId
+    }, () => {
+      this.props.userSelect(dataSend)
     })
   }
   render() {
-    const userList = this.state.userList
+    const userList = this.state.userList ? this.state.userList : []
     return (
-      <div>
+      <div className="admin-user-req">
         <ul className="sidebar navbar-nav">
           <div className="scroll-box">
             <div className="scroll-box-content">
-            <UserBox />
               {
                 userList.map((data, index) => {
-                  console.log(data)
                   return (
-                    <div className={this.state.userSelect === index ? 'list-user' : null} key={index} onClick={() => this.onUserSel(index)}>
-                      <UserBox num={index} address={data.addrCur} />
+                    <div key={index}>
+                      <UserBox reqId={data.id} address={data.BeginPlace} name={data.UserName} userPhone={data.UserPhone} state={data.State}
+                        driverId={data.idDriver} userIdSel={this.onUserIdSel} userIdSelClick={this.state.userSelect} />
                     </div>
                   )
                 })
               }
             </div>
-          </div>
-          <div className="btn-locate">
-            <button type="button" className="btn btn-success btn-lg" onClick={() => this.onUserRemove(this.state.userSelect)}><span>Gửi đi</span></button>
           </div>
         </ul>
       </div>

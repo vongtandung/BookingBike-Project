@@ -1,29 +1,26 @@
-.nav-link.active-cus {
+.admin-user-req .nav-link.active-cus {
     color: white !important;
 }
-.scroll-box{
+.admin-user-req .scroll-box{
     display: flex;
     flex-direction: column;
     overflow-y: hidden;
 }
-.scroll-box-content::-webkit-scrollbar { 
+.admin-user-req .scroll-box-content::-webkit-scrollbar { 
     width: 0.4em;
 }
-.scroll-box-content::-webkit-scrollbar-thumb {
+.admin-user-req .scroll-box-content::-webkit-scrollbar-thumb {
     background-image: linear-gradient(-20deg, #e9defa 0%, #fbfcdb 100%);
     border-radius: 10px;
 }
-.scroll-box-content{
+.admin-user-req .scroll-box-content{
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 70px);
 }
-.list-user{
+.admin-user-req .list-user{
     border-left: 0.1em solid lightblue
 }
-.btn-locate{
-    margin: 2em auto 0 auto;
-}
-.btn-locate span{
-    padding: 1em
+.user-req-inf-name, .user-req-inf-phone{
+    flex: 1
 }

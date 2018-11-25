@@ -59,12 +59,10 @@ $purple:  #bf2fcb;
 	-webkit-text-fill-color: transparent;
 }
 
-.user-box .btn {
+.user-box-admin .btn {
   display: inline-block;
-  margin: 1em 0;
+  margin: 1em 0 0.1em 0;
   padding: 1em 0.5em;
-  
-  background: transparent;
   border-radius: 3px;
   font-weight: 400;
   text-align: center;
@@ -90,7 +88,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-.user-box .container {
+.user-box-admin .container {
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -98,25 +96,25 @@ body {
   align-items: center;
   justify-content: space-around;
 }
-.user-box .buttons {
+.user-box-admin .buttons {
    width: 100%;
   }
-.user-box   p {
+.user-box-admin   p {
   color: white;
   text-align: center;
       text-shadow: 0 0 10px rgba($blue,.5);
 }
-.user-box  .btn {
+.user-box-admin  .btn {
   align-self: center;
   width: 100%;
-  text-align: left;
+  text-align: center;
   &.blue { align-self: stretch; }
 }
-.user-box a {
+.user-box-admin a {
   color: inherit;
   text-decoration: none;
 }
-.user-box .container-fluid{
+.user-box-admin .container-fluid{
   padding-left: calc(0px + 0.4em);
   padding-right: 5px;
 
@@ -134,15 +132,21 @@ body {
   padding-right: 0.2em;
   align-self: flex-end;
 }
-.user-box .addr{
+.user-box-admin .addr{
   color: white;
   white-space: pre-wrap;
 }
-.user-box p{
+.user-box-admin p{
   text-align: left;
   padding-left: 0.2em;
   padding-right: 0.2em;
   margin-bottom: -0.2em;
   margin-top: 0.2em;
   align-self: flex-end;
+}
+.user-box-admin p u{
+  background: -webkit-linear-gradient(to left, #FAFFD1, #A1FFCE);  /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(to left, #FAFFD1, #A1FFCE); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */  
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

@@ -13,10 +13,12 @@ class Driver extends Component {
     super(props);
     this.handleCurLocate = this.handleCurLocate.bind(this);
     this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.handleInitInfApi = this.handleInitInfApi.bind(this);
     this.handleReqInfApi = this.handleReqInfApi.bind(this);
     this.handleReqAccApi = this.handleReqAccApi.bind(this);
     this.handleReqFinApi = this.handleReqFinApi.bind(this);
     this.handleUpdStateApi = this.handleUpdStateApi.bind(this);
+    this.handleDriverBusyApi = this.handleDriverBusyApi.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
     this.onShowPopupWarn = this.onShowPopupWarn.bind(this);
     this.onClosePopupWarn = this.onClosePopupWarn.bind(this);
@@ -43,6 +45,7 @@ class Driver extends Component {
         mess: ''
       },
       userDet: {
+        userId: '',
         reqId: '',
         addr: '',
         name: '',
@@ -57,9 +60,12 @@ class Driver extends Component {
       name: this.webService.getUserName(),
       driverphone: this.webService.getPhoneNum(),
       driverid: this.webService.getIdUser(),
+      driverAccToken: this.webService.getToken(),
+      driverRefToken: this.webService.getRefreshToken(),
       userphone: '',
       mess: ''
     }
+
     this.revLocate = {
       lat: 0,
       lng: 0
@@ -76,7 +82,8 @@ class Driver extends Component {
   }
   componentWillUnmount() {
     if (this.io != null) {
-      this.io.close()
+      this.handleDriverBusyApi(this.driverRes.driverid, this.driverRes.driverAccToken, this.driverRes.driverRefToken)
+      this.io.disconnect()
     }
   }
   initData() {
@@ -112,18 +119,20 @@ class Driver extends Component {
     if (window.navigator) {
       if (window.navigator.permissions) {
         window.navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
-          if (result.state === 'granted') {
-            permission = result.state
-            return
-          } else if (result.state === 'prompt' || result.state === 'denied') {
+          if (result.state === 'prompt' || result.state === 'denied') {
+            self.changeSwitch(false)
             if (result.state === 'denied') {
               permission = result.state
             }
             self.onShowPopupWarn()
+          } else if (result.state === 'granted') {
+            permission = result.state
+            return
           }
         });
       }
       window.navigator.geolocation.getCurrentPosition(function (data) {
+        self.changeSwitch(true)
         self.setState({
           curLocate: {
             ...self.state.curLocate,
@@ -132,11 +141,10 @@ class Driver extends Component {
           }
         }, () => {
           self.onClosePopupWarn()
+          self.handleInitInfApi()
         })
       }, function () {
         if (permission != null && permission === 'denied') {
-        } else if (permission != null && permission === 'granted') {
-          self.props.popup({ title: 'Không thể lấy được vị trí' })
         }
       }, { enableHighAccuracy: true })
     }
@@ -148,6 +156,28 @@ class Driver extends Component {
         self.handleReqInfApi(reqId)
       }
     })
+  }
+  handleInitInfApi() {
+    const self = this
+    self.webService.updateLocate(self.webService.getIdUser(), self.state.curLocate.lat, self.state.curLocate.lng)
+      .then(res => {
+
+      }).catch((error) => {
+        if (error === 401) {
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleInitInfApi()
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
   }
   handleReqInfApi(reqId) {
     const self = this
@@ -163,6 +193,7 @@ class Driver extends Component {
           },
           userDet: {
             ...self.state.userDet,
+            userId: res.userid,
             reqId: res.requestid,
             addr: res.place,
             name: res.username,
@@ -179,10 +210,14 @@ class Driver extends Component {
         })
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleReqInfApi(reqId)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -214,10 +249,14 @@ class Driver extends Component {
 
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleReqAccApi(reqId)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -230,6 +269,7 @@ class Driver extends Component {
     self.webService.driverFinish(self.state.userDet.reqId, self.driverRes.driverid)
       .then(res => {
         if (res && res.mess === 'OK') {
+          let userIdTem = self.state.userDet.userId
           self.setState({
             reqAccept: false,
             curLocate: {
@@ -239,6 +279,7 @@ class Driver extends Component {
             },
             userDet: {
               ...self.state.userDet,
+              userId: '',
               reqId: '',
               addr: '',
               name: '',
@@ -250,15 +291,20 @@ class Driver extends Component {
               }
             }
           }, () => {
+            self.io.emit('driver-finish', userIdTem)
             self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '1', self.driverRes.driverid)
           })
         }
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleReqFinApi()
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -268,15 +314,40 @@ class Driver extends Component {
   }
   handleUpdStateApi(lat, lng, state, driverid) {
     const self = this;
-    self.webService.updateState(self.state.curLocate.lat, self.state.curLocate.lng, state, self.driverRes.driverid)
+    self.webService.updateState(lat, lng, state, driverid)
       .then(res => {
 
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleUpdStateApi(lat, lng, state, driverid)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleDriverBusyApi(driverid, accToken, refToken) {
+    const self = this;
+    self.webService.driverBusy(driverid, accToken)
+      .then(res => {
+      }).catch((error) => {
+        if (error === 401) {
+          self.webService.renewToken(refToken)
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleDriverBusyApi(driverid, res.access_token)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -340,6 +411,7 @@ class Driver extends Component {
       },
       userDet: {
         ...self.state.userDet,
+        userId: '',
         reqId: '',
         addr: '',
         name: '',
@@ -409,22 +481,37 @@ class Driver extends Component {
       <div className="driver">
         <div className="btn-state">
           <div className="btn-box">
-            <button disabled={!this.state.reqAccept} className="btn btn-danger btn-lg" ref="btn" onClick={this.changeState}>
-              {this.state.btnStateTitle}
-            </button>
-            <div className="switch-state">
-              <Switch
-                checked={this.state.switchState}
-                onChange={this.changeSwitch}
-                onColor="#53b27c"
-                disabled={this.state.reqAccept}
-                offColor="#c42817"
-                onHandleColor="#ffffff"
-                width={75}
-                height={35}
-                uncheckedIcon={
-                  <div
-                    style={{
+            <div className="btn-state-group" >
+              <button disabled={!this.state.reqAccept} className="btn btn-danger btn-lg" ref="btn" onClick={this.changeState}>
+                {this.state.btnStateTitle}
+              </button>
+              <div className="switch-state">
+                <Switch
+                  checked={this.state.switchState}
+                  onChange={this.changeSwitch}
+                  onColor="#53b27c"
+                  disabled={this.state.reqAccept}
+                  offColor="#c42817"
+                  onHandleColor="#ffffff"
+                  width={75}
+                  height={35}
+                  uncheckedIcon={
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                        fontSize: 15,
+                        color: "white",
+                        paddingRight: 2
+                      }}
+                    >
+                      <i className="fas fa-times fa-2x"></i>
+                    </div>
+                  }
+                  checkedIcon={
+                    <div style={{
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
@@ -432,31 +519,22 @@ class Driver extends Component {
                       fontSize: 15,
                       color: "white",
                       paddingRight: 2
-                    }}
-                  >
-                    <i className="fas fa-times fa-2x"></i>
-                  </div>
-                }
-                checkedIcon={
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100%",
-                    fontSize: 15,
-                    color: "white",
-                    paddingRight: 2
-                  }}>
-                    <i className="fas fa-check fa-2x"></i>
-                  </div>
-                }
-                className="react-switch"
-                id="icon-switch"
-              />
+                    }}>
+                      <i className="fas fa-check fa-2x"></i>
+                    </div>
+                  }
+                  className="react-switch"
+                  id="icon-switch"
+                />
+              </div>
             </div>
-            <div className ="container-custom1">
-asdaaaaaa
-            </div>
+            {this.state.reqAccept === true ?
+              <div className="container-custom">
+                <p>Tên: {this.state.userDet.name}</p>
+                <p>Địa chỉ: {this.state.userDet.addr}</p>
+                <p>Số điện thoại: {this.state.userDet.phone}</p>
+              </div>
+              : null}
           </div>
         </div>
         <SweetAlert
@@ -516,7 +594,7 @@ class Map extends Component {
         }
       })
     }
-    if (nextProps.reqAccept === true) {
+    if (nextProps.reqAccept === true && nextProps.reqAccept !== this.props.reqAccept) {
       this.setState({
         userCurrCenter: {
           ...this.state.userCurrCenter,
@@ -578,13 +656,16 @@ class Map extends Component {
           this.setState({
             directions: result,
             marker: true
-          }, () => { });
+          }, () => {
+            console.log(result.routes)
+          });
         } else {
           console.error(`error fetching directions ${result}`);
         }
       });
     }
   }
+
   render() {
     return (
       <div className="google-map">
@@ -611,7 +692,7 @@ const GoogleMapExample = withGoogleMap(props => (
     options={mapOptions}
     onClick={props.onMapClick}
   >
-    {props.directions && props.userCurrCenter.lat != null && <DirectionsRenderer directions={props.directions} options={{ suppressMarkers: true }} />}
+    {props.directions && props.userCurrCenter.lat != null && <DirectionsRenderer directions={props.directions} routeIndex={2} options={{ suppressMarkers: true }} />}
     {props.geoCurrCenter.lat != null && <Marker position={props.geoCurrCenter} icon={markerIco} label={'Tài xế'} onClick={props.onMarkerClick} />}
     {props.userCurrCenter.lat != null && <Marker position={props.userCurrCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>

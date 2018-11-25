@@ -33,7 +33,7 @@ class User extends Component {
   }
   componentWillUnmount() {
     if (this.io != null) {
-      this.io.close()
+      this.io.disconnect()
     }
   }
   initData() {
@@ -77,6 +77,13 @@ class User extends Component {
         })
       })
     })
+    self.io.on('finish', () => {
+      self.setState({ isBook: false }, () => {
+        self.props.popup({
+          title: 'Chuyến đi đã kết thúc',
+        })
+      })
+    })
   }
   handleDriverInfApi(driverid) {
     const self = this;
@@ -88,10 +95,14 @@ class User extends Component {
         })
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleDriverInfApi(driverid)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')

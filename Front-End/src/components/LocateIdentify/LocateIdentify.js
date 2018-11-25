@@ -39,7 +39,7 @@ class LocateIdentify extends Component {
   }
   componentWillUnmount() {
     if (this.io != null) {
-      this.io.close()
+      this.io.disconnect()
     }
   }
   initData() {
@@ -100,10 +100,14 @@ class LocateIdentify extends Component {
         }
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+          .then(res =>{
+            self.webService.updateToken(res.access_token)
+            self.handleRequestApi(reqId)
+          }).catch ((error) =>{
+            self.webService.logout();
+            self.props.history.push('/login')
+          })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -120,10 +124,14 @@ class LocateIdentify extends Component {
         }
       }).catch((error) => {
         if (error === 401) {
-          // self.webService.renewToken(self.webService.getToken())
-          // .then(res =>{
-          //   console.log(res)
-          // })
+          self.webService.renewToken()
+          .then(res =>{
+            self.webService.updateToken(res.access_token)
+            self.handleLocatedApi(lat, lng, requestid)
+          }).catch ((error) =>{
+            self.webService.logout();
+            self.props.history.push('/login')
+          })
         } else if (error === 403) {
           self.webService.logout()
           self.props.push('/login')
@@ -204,8 +212,8 @@ class LocateIdentify extends Component {
   }
   render() {
     return (
-      <div>
-        <HeaderManager />
+      <div className="locate">
+        <HeaderManager name={this.webService.getUserName}/>
         <div id="wrapper">
           <UserReq userList={this.state.userList} userSelect={this.onUserSelect} userRemove={this.onUserRemove} />
           <div id="content-wrapper">

@@ -3,9 +3,9 @@ import queryString from 'query-string';
 export default class WebService {
     // Initializing important variables
     constructor(domain) {
-        this.apiDomain = domain || 'http://localhost:3001/api'  // API server domain
+        this.apiDomain = domain || 'http://192.168.1.6:3001/api'  // API server domain
         this.mapDomain = 'https://maps.googleapis.com/maps/api/geocode/json?'
-        this.sokDomain = 'http://localhost:3002'
+        this.sokDomain = 'http://192.168.1.6:3002'
         this.key = 'AIzaSyA6Ya_QfVc1b17ay6l-ncKR_S-53mgZW8A'
         this.fetchDataApi = this.fetchDataApi.bind(this) // React binding stuff
         this.fetchDataMap = this.fetchDataMap.bind(this) // React binding stuff
@@ -31,10 +31,10 @@ export default class WebService {
             return res;
         })
     }
-    renewToken(refreshToken){
+    renewToken(refreshToken) {
         const action = 'renewtoken'
         const param = {
-            refreshToken: refreshToken
+            refreshToken: refreshToken ? refreshToken : this.getRefreshToken()
         }
         // Get a token from api server using the fetch api
         return this.fetchDataApi(`${this.apiDomain}/login/${action}`, {
@@ -64,6 +64,21 @@ export default class WebService {
 
     //FOR DRIVER
     //#URl: /driver
+    updateLocate(driverid, lat, lng) {
+        const action = 'updateLocate'
+        const param = {
+            driverid: driverid,
+            lat: lat,
+            lng: lng
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
     getRequestInfo(requestid) {
         const action = 'getRequestInfo'
         const param = {
@@ -114,6 +129,43 @@ export default class WebService {
             driverid: driverid
         }
         return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
+    driverBusy(driverid, accToken) {
+        const action = 'setBusy'
+        const param = {
+            driverid: driverid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        },accToken).then(res => {
+            return res;
+        })
+    }
+    //FOR ADMIN
+    //#URl: /admin
+    getAllReq() {
+        const action = 'getAllRequest'
+        return this.fetchDataApi(`${this.apiDomain}/admin/${action}`, {
+            method: 'GET',
+            json: true,
+        }).then(res => {
+            return res;
+        })
+    }
+    getDriverInfoAdmin(driverid) {
+        const action = 'getDriverInfo'
+        const param = {
+            driverid: driverid
+        }
+        return this.fetchDataApi(`${this.apiDomain}/admin/${action}`, {
             method: 'POST',
             json: true,
             body: JSON.stringify(param),
@@ -212,10 +264,12 @@ export default class WebService {
         }
     }
 
-    setInfo(id, username, phone, permission, token) {
+    setInfo(id, username, phone, permission, accessToken, refreshToken) {
         // Saves user token to localStorage
-        localStorage.setItem('idToken', token);
+        localStorage.setItem('idToken', accessToken);
+        localStorage.setItem('idRefToken', refreshToken)
         localStorage.setItem('idUser', id);
+        localStorage.setItem('idUserTemp', id);
         localStorage.setItem('userName', username);
         localStorage.setItem('userPhone', phone);
         localStorage.setItem('permiss', permission);
@@ -226,8 +280,12 @@ export default class WebService {
         return localStorage.getItem('idToken');
     }
 
+    getRefreshToken() {
+        return localStorage.getItem('idRefToken');
+    }
+
     getIdUser() {
-        return localStorage.getItem('idUser')
+        return localStorage.getItem('idUser');
     }
 
     getUserName() {
@@ -242,7 +300,7 @@ export default class WebService {
         return localStorage.getItem('userPhone');
     }
 
-    updateToken(newToken){
+    updateToken(newToken) {
         localStorage.setItem('idToken', newToken);
     }
 
@@ -250,16 +308,19 @@ export default class WebService {
         // Clear user token and profile data from localStorage
         localStorage.removeItem('idUser');
         localStorage.removeItem('idToken');
+        localStorage.removeItem('idRefToken');
         localStorage.removeItem('userName');
         localStorage.removeItem('userPhone');
         localStorage.removeItem('permiss');
+        sessionStorage.removeItem('isPlace');
+        sessionStorage.removeItem('isNote');
         sessionStorage.removeItem('userList');
         sessionStorage.removeItem('userNum');
     }
 
 
     //Function config fetch data from server API -----------------------------------------
-    fetchDataApi(url, options) {
+    fetchDataApi(url, options, driverAccToken) {
         const timeout = 30000;
         // return fetch(url, {
         //     header,
@@ -277,7 +338,7 @@ export default class WebService {
                 headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json",
-                    "x-access-token" : this.getToken()
+                    "x-access-token": driverAccToken ? driverAccToken: this.getToken() 
                 }
             }).then(this.checkStatus).then(
                 response => {
@@ -320,7 +381,7 @@ export default class WebService {
         // raises an error in case response status is not a success
         if (response.status >= 200 && response.status < 300) { // Success status lies between 200 to 300
             return response
-        } else if (response.status === 401 || response.status === 403){
+        } else if (response.status === 401 || response.status === 403) {
             throw response.status
         } else {
             let error = new Error(response.statusText)
