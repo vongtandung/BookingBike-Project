@@ -56,6 +56,9 @@
   border-radius: 0.3em;
   white-space: pre-wrap;
 }
+.container-custom p{
+  margin-bottom: 0.3em;
+}
 .container-custom::-webkit-scrollbar { 
   width: 0.4em;
 }

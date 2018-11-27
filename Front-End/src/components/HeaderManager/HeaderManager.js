@@ -8,7 +8,7 @@ class HeaderManager extends Component {
     this.logOut = this.logOut.bind(this);
     this.webService = new WebService();
   }
-  logOut(){
+  logOut() {
     this.webService.logout();
     this.props.history.push('/login')
   }
@@ -16,7 +16,7 @@ class HeaderManager extends Component {
     return (
       <div>
         <nav className="navbar navbar-expand navbar-dark bg-dark static-top">
-          <a className="navbar-brand mr-1" href=''>Locate Indentify <span style={{"color":"red"}}>{this.webService.getUserName()}</span></a>
+          <a className="navbar-brand mr-1" href=''>{this.webService.isAdmin() ? 'Admin' : 'Locate Indentify'} <span style={{ "color": "red", "font-size" : "1em" }}>{this.webService.getUserName()}</span></a>
           {/* Navbar Search */}
           <form className="d-none d-md-inline-block form-inline ml-auto mr-0 mr-md-3 my-2 my-md-0">
             <div className="input-group">

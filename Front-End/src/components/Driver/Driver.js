@@ -74,7 +74,7 @@ class Driver extends Component {
     this.io = null
   }
   componentWillMount() {
-   this.initData()
+    this.initData()
   }
   componentDidMount() {
     if (this.io != null) {
@@ -150,7 +150,7 @@ class Driver extends Component {
       }, { enableHighAccuracy: true })
     }
   }
-  handleCurrLocateFinish(){
+  handleCurrLocateFinish() {
     const self = this;
     window.navigator.geolocation.getCurrentPosition(function (data) {
       self.setState({
@@ -168,7 +168,9 @@ class Driver extends Component {
     const self = this
     self.io.on('server-send-request-driver', function (reqId) {
       if (reqId) {
-        self.handleReqInfApi(reqId)
+        setTimeout(() => {
+          self.handleReqInfApi(reqId)
+        }, 350);
       }
     })
   }
@@ -199,13 +201,6 @@ class Driver extends Component {
     self.webService.getRequestInfo(reqId)
       .then(res => {
         self.setState({
-          popupReq: {
-            ...self.state.popupReq,
-            show: true,
-            popupType: true,
-            title: res.username,
-            mess: res.place + '|' + res.userphone
-          },
           userDet: {
             ...self.state.userDet,
             userId: res.userid,
@@ -218,6 +213,13 @@ class Driver extends Component {
               lat: res.lat,
               lng: res.lng
             }
+          },
+          popupReq: {
+            ...self.state.popupReq,
+            show: true,
+            popupType: true,
+            title: res.username,
+            mess: res.place + '|' + res.userphone
           }
         }, () => {
           self.onTimeOutReq()
@@ -477,6 +479,7 @@ class Driver extends Component {
     });
   }
   changeState(e) {
+    e.preventDefault()
     this.setState({ btnState: !this.state.btnState },
       () => {
         if (this.state.btnState === true) {
@@ -541,9 +544,9 @@ class Driver extends Component {
             </div>
             {this.state.reqAccept === true ?
               <div className="container-custom">
-                <p>Tên: {this.state.userDet.name}</p>
-                <p>Địa chỉ: {this.state.userDet.addr}</p>
-                <p>Số điện thoại: {this.state.userDet.phone}</p>
+                <p><span style={{ "color": "red" }}>Tên:</span> {this.state.userDet.name}</p>
+                <p><span style={{ "color": "red" }}>Địa chỉ:</span> {this.state.userDet.addr}</p>
+                <p><span style={{ "color": "red" }}>Số điện thoại:</span> {this.state.userDet.phone}</p>
               </div>
               : null}
           </div>
@@ -569,7 +572,8 @@ class Map extends Component {
   constructor(props) {
     super(props);
     this.getPoint = this.getPoint.bind(this);
-    this.drawDirection = this.drawDirection.bind(this)
+    this.drawDirection = this.drawDirection.bind(this);
+    this.findShortestRoute = this.findShortestRoute.bind(this);
     this.state = {
       defaultCenter: {
         latitude: 0,
@@ -585,11 +589,12 @@ class Map extends Component {
       },
       zoom: 16,
       directions: null,
+      indexRoute: 0,
       marker: false
     }
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.center) {
+    if (nextProps.center && (nextProps.center !== this.props.center)) {
       this.setState({
         geoCurrCenter: {
           ...this.state.geoCurrCenter,
@@ -653,6 +658,7 @@ class Map extends Component {
   }
   drawDirection() {
     const DirectionsService = new window.google.maps.DirectionsService();
+
     if (this.state.userCurrCenter.lat != null) {
       DirectionsService.route({
         origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
@@ -661,22 +667,31 @@ class Map extends Component {
         avoidTolls: true,
         avoidHighways: true,
         travelMode: window.google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true,
       }, (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
-          this.setState({
-            directions: result,
-            marker: true
-          }, () => {
-            console.log(result.routes)
-          });
+          this.findShortestRoute(result)
         } else {
           console.error(`error fetching directions ${result}`);
         }
       });
     }
   }
-
+  findShortestRoute(result) {
+    let shortest = result.routes[0].legs[0].distance.value
+    let indexRoute = 0;
+    result.routes.forEach((ele, index) => {
+      if (ele.legs[0].distance.value < shortest) {
+        shortest = ele.legs.distance.value
+        indexRoute = index
+      }
+    });
+    this.setState({
+      directions: result,
+      indexRoute: indexRoute,
+      marker: true
+    }, () => {
+    });
+  }
   render() {
     return (
       <div className="google-map">

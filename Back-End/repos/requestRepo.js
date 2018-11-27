@@ -8,8 +8,8 @@ exports.addRequest = Request => {
     return db.insert(sql);
 };
 exports.getrequest = (id) => {
-    var sql = `select * from request, user where request.id = '${id}'`;
-	return db.insert(sql);
+    var sql = `select * from request, user where request.id = '${id}' and request.idUser = user.id`;
+    return db.insert(sql);
 };
 exports.updateDriver = (iddriver, id) => {
     var sql = `update request set request.idDriver = '${iddriver}' where id = '${id}'`;
@@ -21,21 +21,21 @@ exports.updateState = (state, id) => {
 };
 exports.getRequestId = phone => {
     var sql = `select request.id from request, user where user.PhoneNumber = '${phone}' ORDER BY request.id DESC LIMIT 1`;
-	return db.load(sql);
+    return db.load(sql);
 };
-exports.located = Request =>{
+exports.located = Request => {
     var sql = `update request set State = "located", request.lat = '${Request.lat}', request.lng ='${Request.lng}' where id = '${Request.id}'`;
     return db.insert(sql);
 }
 exports.getInfor = id => {
     var sql = `select * from user where id = '${id}'`;
-	return db.insert(sql);
+    return db.insert(sql);
 }
-exports.getUserByRequestId = requestid =>{
+exports.getUserByRequestId = requestid => {
     var sql = `select * from request where id = '${requestid}'`;
-	return db.load(sql);
+    return db.load(sql);
 }
-exports.getLatLngByRequestId = requestid =>{
+exports.getLatLngByRequestId = requestid => {
     var sql = `select * from request where id = '${requestid}'`;
-	return db.load(sql);
+    return db.load(sql);
 }
