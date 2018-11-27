@@ -658,7 +658,6 @@ class Map extends Component {
   }
   drawDirection() {
     const DirectionsService = new window.google.maps.DirectionsService();
-
     if (this.state.userCurrCenter.lat != null) {
       DirectionsService.route({
         origin: new window.google.maps.LatLng(this.state.geoCurrCenter.lat, this.state.geoCurrCenter.lng),
@@ -692,6 +691,7 @@ class Map extends Component {
     }, () => {
     });
   }
+
   render() {
     return (
       <div className="google-map">
@@ -704,6 +704,7 @@ class Map extends Component {
           userCurrCenter={this.state.userCurrCenter}
           zoom={this.state.zoom}
           directions={this.state.directions}
+          indexRoute={this.state.indexRoute}
           marker={this.state.marker}
         />
       </div>
@@ -718,7 +719,7 @@ const GoogleMapExample = withGoogleMap(props => (
     options={mapOptions}
     onClick={props.onMapClick}
   >
-    {props.directions && props.userCurrCenter.lat != null && <DirectionsRenderer directions={props.directions} routeIndex={2} options={{ suppressMarkers: true }} />}
+    {props.directions && props.userCurrCenter.lat != null && <DirectionsRenderer directions={props.directions} routeIndex={props.indexRoute} options={{ suppressMarkers: true }} />}
     {props.geoCurrCenter.lat != null && <Marker position={props.geoCurrCenter} icon={markerIco} label={'Tài xế'} onClick={props.onMarkerClick} />}
     {props.userCurrCenter.lat != null && <Marker position={props.userCurrCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>

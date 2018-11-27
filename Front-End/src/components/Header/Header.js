@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { withRouter } from "react-router-dom";
 import WebService from '../../utilities/WebServices';
 import "./Header.css";
+import logo from '../../assets/images/logo-ilovexeom.png'
 class Header extends Component {
   constructor(props){
     super();
@@ -18,7 +19,7 @@ class Header extends Component {
         <div className="header">
           <div className="sides">
             <a href="#" className="logo">
-              BLOG
+              <img src={logo} alt='' width={150 + 'rem'}></img>
             </a>
           </div>
           <div className="sides">

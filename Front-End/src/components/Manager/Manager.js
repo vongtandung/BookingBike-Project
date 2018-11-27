@@ -43,7 +43,7 @@ class Manager extends Component {
     const self = this;
     if (this.webService.isAdmin()) {
       this.props.isLogged(true);
-      this.callLoopApi= setInterval(this.handleGetAllReqApi,2000)
+      this.callLoopApi = setInterval(this.handleGetAllReqApi, 2000)
       self.io = io(this.webService.sokDomain, {
         query: {
           permission: self.webService.getPermission(),
@@ -140,7 +140,8 @@ class Manager extends Component {
 class Map extends Component {
   constructor(props) {
     super(props);
-    this.drawDirection = this.drawDirection.bind(this)
+    this.drawDirection = this.drawDirection.bind(this);
+    this.findShortestRoute = this.findShortestRoute.bind(this);
     this.state = {
       defaultCenter: {
         lat: 10.801940,
@@ -177,6 +178,7 @@ class Map extends Component {
           lng: null
         },
         directions: null,
+        indexRoute: 0,
         zoom: 15
       })
     } else {
@@ -206,20 +208,30 @@ class Map extends Component {
         avoidTolls: true,
         avoidHighways: true,
         travelMode: window.google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true,
       }, (result, status) => {
         if (status === window.google.maps.DirectionsStatus.OK) {
-          this.setState({
-            directions: result,
-            marker: true
-          }, () => {
-            console.log(result.routes)
-          });
+          this.findShortestRoute(result)
         } else {
           console.error(`error fetching directions ${result}`);
         }
       });
     }
+  }
+  findShortestRoute(result) {
+    let shortest = result.routes[0].legs[0].distance.value
+    let indexRoute = 0;
+    result.routes.forEach((ele, index) => {
+      if (ele.legs[0].distance.value < shortest) {
+        shortest = ele.legs.distance.value
+        indexRoute = index
+      }
+    });
+    this.setState({
+      directions: result,
+      indexRoute: indexRoute,
+      marker: true
+    }, () => {
+    });
   }
 
   render() {
@@ -234,6 +246,7 @@ class Map extends Component {
           userCenter={this.state.userCenter}
           zoom={this.state.zoom}
           directions={this.state.directions}
+          indexRoute={this.state.indexRoute}
         />
       </div>
     );
@@ -246,7 +259,7 @@ const GoogleMapExample = withGoogleMap(props => (
     zoom={props.zoom}
     options={mapOptions}
   >
-    {props.directions != null && <DirectionsRenderer directions={props.directions} routeIndex={2} options={{ suppressMarkers: true }} />}
+    {props.directions != null && <DirectionsRenderer directions={props.directions} routeIndex={props.indexRoute} options={{ suppressMarkers: true }} />}
     {props.driverCenter.lat != null && <Marker position={props.driverCenter} icon={markerIco} label={'Tài xế'} />}
     {props.userCenter.lat != null && <Marker position={props.userCenter} icon={markerIco} label={'Khách'} />}
   </GoogleMap>

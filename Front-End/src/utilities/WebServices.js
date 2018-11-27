@@ -269,7 +269,6 @@ export default class WebService {
         localStorage.setItem('idToken', accessToken);
         localStorage.setItem('idRefToken', refreshToken)
         localStorage.setItem('idUser', id);
-        localStorage.setItem('idUserTemp', id);
         localStorage.setItem('userName', username);
         localStorage.setItem('userPhone', phone);
         localStorage.setItem('permiss', permission);

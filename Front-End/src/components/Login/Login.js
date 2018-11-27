@@ -26,6 +26,8 @@ class Login extends Component {
     } else if (this.webService.isUser()) {
       this.props.history.replace('/user')
       return;
+    } else{
+      this.webService.logout()
     }
   }
   render() {
