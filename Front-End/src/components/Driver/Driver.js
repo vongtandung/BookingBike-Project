@@ -19,6 +19,7 @@ class Driver extends Component {
     this.handleReqAccApi = this.handleReqAccApi.bind(this);
     this.handleReqFinApi = this.handleReqFinApi.bind(this);
     this.handleUpdStateApi = this.handleUpdStateApi.bind(this);
+    this.handleDriverMovingApi = this.handleDriverMovingApi.bind(this);
     this.handleDriverBusyApi = this.handleDriverBusyApi.bind(this);
     this.onTimeOutReq = this.onTimeOutReq.bind(this);
     this.onShowPopupWarn = this.onShowPopupWarn.bind(this);
@@ -46,7 +47,6 @@ class Driver extends Component {
         mess: ''
       },
       userDet: {
-        userId: '',
         reqId: '',
         addr: '',
         name: '',
@@ -203,7 +203,6 @@ class Driver extends Component {
         self.setState({
           userDet: {
             ...self.state.userDet,
-            userId: res.userid,
             reqId: res.requestid,
             addr: res.place,
             name: res.username,
@@ -286,12 +285,10 @@ class Driver extends Component {
     self.webService.driverFinish(self.state.userDet.reqId, self.driverRes.driverid)
       .then(res => {
         if (res && res.mess === 'OK') {
-          let userIdTem = self.state.userDet.userId
           self.setState({
             reqAccept: false,
             userDet: {
               ...self.state.userDet,
-              userId: '',
               reqId: '',
               addr: '',
               name: '',
@@ -303,7 +300,6 @@ class Driver extends Component {
               }
             }
           }, () => {
-            self.io.emit('driver-finish', userIdTem)
             self.handleCurrLocateFinish()
             self.handleUpdStateApi(self.state.curLocate.lat, self.state.curLocate.lng, '1', self.driverRes.driverid)
           })
@@ -336,6 +332,27 @@ class Driver extends Component {
             .then(res => {
               self.webService.updateToken(res.access_token)
               self.handleUpdStateApi(lat, lng, state, driverid)
+            }).catch((error) => {
+              self.webService.logout();
+              self.props.history.push('/login')
+            })
+        } else if (error === 403) {
+          self.webService.logout()
+          self.props.push('/login')
+          return
+        }
+      })
+  }
+  handleDriverMovingApi() {
+    const self = this;
+    self.webService.driverMoving(this.state.userDet.reqId)
+      .then(res => {
+      }).catch((error) => {
+        if (error === 401) {
+          self.webService.renewToken()
+            .then(res => {
+              self.webService.updateToken(res.access_token)
+              self.handleDriverMovingApi(this.state.userDet.reqId)
             }).catch((error) => {
               self.webService.logout();
               self.props.history.push('/login')
@@ -424,7 +441,6 @@ class Driver extends Component {
       },
       userDet: {
         ...self.state.userDet,
-        userId: '',
         reqId: '',
         addr: '',
         name: '',
@@ -484,6 +500,7 @@ class Driver extends Component {
       () => {
         if (this.state.btnState === true) {
           this.setState({ btnStateTitle: 'Kết thúc' })
+          this.handleDriverMovingApi()
         } else {
           this.setState({ btnStateTitle: 'Bắt đầu' })
           this.handleReqFinApi()
@@ -680,7 +697,7 @@ class Map extends Component {
     let indexRoute = 0;
     result.routes.forEach((ele, index) => {
       if (ele.legs[0].distance.value < shortest) {
-        shortest = ele.legs.distance.value
+        shortest = ele.legs[0].distance.value
         indexRoute = index
       }
     });

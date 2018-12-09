@@ -122,6 +122,19 @@ export default class WebService {
             return res;
         })
     }
+    driverMoving(requestid) {
+        const action = 'setmoving'
+        const param = {
+            requestid: requestid,
+        }
+        return this.fetchDataApi(`${this.apiDomain}/driver/${action}`, {
+            method: 'POST',
+            json: true,
+            body: JSON.stringify(param),
+        }).then(res => {
+            return res;
+        })
+    }
     driverFinish(requestid, driverid) {
         const action = 'finish'
         const param = {
@@ -311,8 +324,6 @@ export default class WebService {
         localStorage.removeItem('userName');
         localStorage.removeItem('userPhone');
         localStorage.removeItem('permiss');
-        sessionStorage.removeItem('isPlace');
-        sessionStorage.removeItem('isNote');
         sessionStorage.removeItem('userList');
         sessionStorage.removeItem('userNum');
     }

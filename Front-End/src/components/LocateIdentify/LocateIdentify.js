@@ -142,7 +142,6 @@ class LocateIdentify extends Component {
   handleMapApi(res) {
     const self = this
     let userDet = {
-      userid: res.userid,
       requestid: res.requestid,
       name: res.username,
       phone: res.userphone,
@@ -286,7 +285,7 @@ const GoogleMapExample = withGoogleMap(props => (
     {props.userList.map((userMarker, index) => {
       return (
         <div key={index}>
-          <Marker position={userMarker.center} icon={markerIco} label={userMarker.name + ' --- id:' + userMarker.userid} onClick={props.userSelect === index ? props.onMapClick : null} />
+          <Marker position={userMarker.center} icon={markerIco} label={userMarker.name + '-' + userMarker.phone} onClick={props.userSelect === index ? props.onMapClick : null} />
         </div>
       )
     })

@@ -8,28 +8,22 @@ import WebService from "../../utilities/WebServices";
 class User extends Component {
   constructor(props) {
     super(props);
-    this.handleDataSocket = this.handleDataSocket.bind(this);
+    this.onNameChange = this.onNameChange.bind(this);
+    this.onPhoneChange = this.onPhoneChange.bind(this);
     this.onPlaceChange = this.onPlaceChange.bind(this);
     this.onNoteChange = this.onNoteChange.bind(this);
     this.onSendInfo = this.onSendInfo.bind(this);
     this.webService = new WebService();
-    this.isPlace = localStorage.getItem('isPlace') != null ? localStorage.getItem('isPlace') : '';
-    this.isNote = localStorage.getItem('isNote') != null ? localStorage.getItem('isNote') : '';
-    this.isBook = localStorage.getItem('isBook') != null ? localStorage.getItem('isBook') : false;
     this.state = {
+      name: '',
+      phone: '',
       place: '',
-      note: '',
-      isBook: false
+      note: ''
     }
     this.io = null;
   }
   componentWillMount() {
     this.initData();
-  }
-  componentDidMount() {
-    if (this.io != null) {
-      this.handleDataSocket()
-    }
   }
   componentWillUnmount() {
     if (this.io != null) {
@@ -56,34 +50,11 @@ class User extends Component {
           id: self.webService.getIdUser()
         }
       });
-      self.initState()
       return;
     } else {
       this.props.history.push('/login')
       return;
     }
-  }
-  handleDataSocket() {
-    const self = this;
-    self.io.on('server-send-success-response-user', function (driverid) {
-      if (driverid) {
-        self.handleDriverInfApi(driverid)
-      }
-    })
-    self.io.on('server-send-fail-response-user', function () {
-      self.setState({ isBook: false }, () => {
-        self.props.popup({
-          title: 'Không tìm thấy tài xế',
-        })
-      })
-    })
-    self.io.on('finish', () => {
-      self.setState({ isBook: false }, () => {
-        self.props.popup({
-          title: 'Chuyến đi đã kết thúc',
-        })
-      })
-    })
   }
   handleDriverInfApi(driverid) {
     const self = this;
@@ -110,13 +81,14 @@ class User extends Component {
         }
       })
   }
-  initState() {
-    const self = this
-    self.setState({
-      place: self.isPlace,
-      note: self.isNote,
-    }, () => {
-      self.refs.note.value = self.state.note
+  onNameChange(event) {
+    this.setState({
+      name: event.target.value
+    })
+  }
+  onPhoneChange(event) {
+    this.setState({
+      phone: event.target.value
     })
   }
   onPlaceChange(value) {
@@ -129,29 +101,80 @@ class User extends Component {
       note: event.target.value
     })
   }
-
-  onSendInfo() {
-    const self = this
-    const userInf = {
-      place: this.state.place,
-      note: this.state.note,
-      id: this.webService.getIdUser(),
-      name: this.webService.getUserName(),
-      phone: this.webService.getPhoneNum()
+  onCheckInfo(userInf) {
+    let isInf = true;
+    if (userInf.cusname === undefined || userInf.cusname === null || userInf.cusname === '') {
+      isInf = false
+    } else if (userInf.cusphone === undefined || userInf.cusphone === null || userInf.cusphone === '') {
+      isInf = false
+    } else if (userInf.place === undefined || userInf.place === null || userInf.place === '') {
+      isInf = false
     }
-    self.setState({ isBook: true }, () => {
-      localStorage.setItem('isPlace', self.state.place)
-      localStorage.setItem('isNote', self.state.note)
-      localStorage.setItem('isBook', self.state.isBook)
-    });
-    this.io.emit('user-send-place', userInf)
+    if (isInf === false) {
+      this.props.popup({
+        title: 'Thông tin nhập chưa đúng',
+        mess: ''
+      })
+    }
+    return isInf
+  }
+  onSendInfo(e) {
+    e.preventDefault()
+    const userInf = {
+      cusname: this.state.name,
+      cusphone: this.state.phone,
+      place: this.state.place,
+      note: this.state.note
+    }
+    if (this.onCheckInfo(userInf)) {
+      this.io.emit('user-send-place', userInf)
+      this.setState({
+        name: '',
+        phone: '',
+        note: ''
+      }, () => {
+        this.refs.name.value = ''
+        this.refs.phone.value = ''
+        this.refs.note.value = ''
+        this.props.popup({
+          title: 'Thông tin khách gửi thành công',
+          mess: ''
+        })
+      })
+    }
   }
   render() {
     return (
       <div className="user">
         <div className="user-input container-fluid input-box1">
           <div className="input-group input-group-md">
-            <input disabled={this.state.isBook}
+            <input
+              ref="name"
+              onBlur={this.onNameChange}
+              type="text"
+              className="form-control"
+              aria-label="Large"
+              aria-describedby="inputGroup-sizing-sm"
+              placeholder="Nhập tên"
+            />
+          </div>
+        </div>
+        <div className="user-input container-fluid input-box2">
+          <div className="input-group input-group-md">
+            <input
+              ref="phone"
+              onBlur={this.onPhoneChange}
+              type="text"
+              className="form-control"
+              aria-label="Large"
+              aria-describedby="inputGroup-sizing-sm"
+              placeholder="Nhập SĐT"
+            />
+          </div>
+        </div>
+        <div className="user-input container-fluid input-box3">
+          <div className="input-group input-group-md">
+            <input
               ref="note"
               onBlur={this.onNoteChange}
               type="text"
@@ -162,10 +185,10 @@ class User extends Component {
             />
           </div>
           <div className="btn-custom">
-            <button disabled={this.state.isBook} type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
+            <button type="button" className="btn btn-success btn-lg" onClick={this.onSendInfo}>Đặt Xe</button>
           </div>
         </div>
-        <Map onPlaceChange={this.onPlaceChange} isBook={this.state.isBook} isPlace={this.state.place} />
+        <Map onPlaceChange={this.onPlaceChange} isPlace={this.state.place} />
       </div>
 
     );
@@ -201,9 +224,7 @@ class Map extends Component {
     })
   }
   onPlacesChanged() {
-    console.log(this.state.onSearchInput)
     this.state.onSearchInput.focus();
-    console.log(this.state.SearchBox.getPlaces())
   }
   onSearchBox(ref) {
     this.setState({ SearchBox: ref }, () => { });
@@ -227,7 +248,6 @@ class Map extends Component {
           mapElement={<div style={{ height: `90%` }} />}
           center={this.state.center}
           zoom={this.state.zoom}
-          isBook={this.props.isBook}
           onMapClick={this.getPoint}
           onPlacesChanged={this.onPlacesChanged}
           onSearchBox={this.onSearchBox}
@@ -253,14 +273,14 @@ const GoogleMapExample = withGoogleMap(props => (
       ref={props.onSearchBox}
     >
       <div className="user-input container-fluid input-box">
-        <input disabled={props.isBook}
+        <input
           ref={props.onSearchInput}
           onBlur={props.onInputChange}
           type="text"
           className="form-control"
           aria-label="Large"
           aria-describedby="inputGroup-sizing-sm"
-          placeholder="Nhập địa chỉ..."
+          placeholder="Nhập địa chỉ"
           autoComplete="true"
         />
       </div>

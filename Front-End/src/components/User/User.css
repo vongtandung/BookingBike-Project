@@ -1,5 +1,5 @@
 .input-box{
-    margin-top: 2em;
+    margin-top: 9.3em;
     top: auto;
     left: auto;
     right: auto;
@@ -8,17 +8,32 @@
 }
 .input-box1{
     position: absolute;
-    margin-top: 4em;
+    margin-top: 1em;
     top: auto;
     left: auto;
     right: auto;
     height: auto;
     z-index: 999;
 }
-.input-box input{
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+.input-box2{
+    position: absolute;
+    margin-top: 3.7em;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: auto;
+    z-index: 999;
 }
-.input-box1 input{
+.input-box3{
+    position: absolute;
+    margin-top: 9.1em;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: auto;
+    z-index: 999;
+}
+.input-box input, .input-box1 input, .input-box2 input, .input-box3 input{
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 .btn-custom{

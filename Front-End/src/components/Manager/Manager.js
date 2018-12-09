@@ -222,7 +222,7 @@ class Map extends Component {
     let indexRoute = 0;
     result.routes.forEach((ele, index) => {
       if (ele.legs[0].distance.value < shortest) {
-        shortest = ele.legs.distance.value
+        shortest = ele.legs[0].distance.value
         indexRoute = index
       }
     });
