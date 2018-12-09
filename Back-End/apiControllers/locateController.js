@@ -13,9 +13,8 @@ router.post("/request", (req, res) => {
           requestid: req.body.requestid,
           place: row[0].BeginPlace,
           note: row[0].Note,
-          userid: row[0].idUser,
-          userphone: row[0].PhoneNumber,
-          username: row[0].Name
+          userphone: row[0].CusPhone,
+          username: row[0].CusName
         });
       } else {
         res.json("No request");

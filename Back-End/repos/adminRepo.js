@@ -7,7 +7,7 @@ var db = require('../fn/mysql-db');
 };
 */
 exports.GetRequest  = () => {
-    var sql = `select request.id as id, request.BeginPlace,request.lat as UserLat, request.lng as UserLng , user.Name as UserName, user.PhoneNumber as UserPhone, request.State , request.idDriver from request , user  where request.idUser = user.id ORDER BY request.Time DESC `;
+    var sql = `select request.id as id, request.BeginPlace,request.lat as UserLat, request.lng as UserLng , request.CusName as UserName, request.CusPhone as UserPhone, request.State , request.idDriver from request ORDER BY request.Time DESC `;
 	return db.load(sql);
 };
 exports.getDriverDetailInfo =(id) =>{
@@ -16,9 +16,5 @@ exports.getDriverDetailInfo =(id) =>{
 };
 exports.getState  = (requestid) => {
     var sql = `select State from request where id = ${requestid}`;
-	return db.load(sql);
-};
-exports.getMoreInfo  = (id) => {
-    var sql = `select * from user,driverlocate where user.id = driverlocate.driverid and user.id= ${id} `;
 	return db.load(sql);
 };

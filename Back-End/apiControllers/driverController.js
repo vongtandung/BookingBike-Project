@@ -53,9 +53,8 @@ router.post("/getRequestInfo", (req, res) => {
           requestid: req.body.requestid,
           place: row[0].BeginPlace,
           note: row[0].Note,
-          userid: row[0].idUser,
-          userphone: row[0].PhoneNumber,
-          username: row[0].Name,
+          userphone: row[0].CusPhone,
+          username: row[0].CusName,
           lat: row[0].lat,
           lng: row[0].lng
         });
@@ -72,6 +71,14 @@ router.post("/setBusy", (req, res) => {
   console.log(req.body.driverid);
   driverRepo
     .setBusy(req.body.driverid)
+    .then(res.json({ mess: "ok" }))
+    .catch(err => {
+      res.end(err);
+    });
+});
+router.post("/setmoving", (req, res) => {
+  console.log(req.body.requestid);
+  requestRepo.updateState("Moving",req.body.requestid)
     .then(res.json({ mess: "ok" }))
     .catch(err => {
       res.end(err);

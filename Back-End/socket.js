@@ -49,6 +49,7 @@ io.on("connection", function(socket) {
       });
     }
     if (resp.mess === "reject") {
+      //driverRepo.
       if (Listarr.length > 1) {
         Listarr.shift();
         ele = arrayDriver.filter((per, index) => {
@@ -74,14 +75,14 @@ io.on("connection", function(socket) {
       }
     }
   });
-  socket.on("driver-finish", function(userid){
+  /*socket.on("driver-finish", function(userid){
     ele = arrayUser.filter((per, inde) => {
       return per.id == userid;
     });
     for (i = 0; i < ele.length; i++) {
       io.to(ele[i].socketid).emit("finish");
     }
-  })
+  })*/
   socket.on("user-send-place", function(data) {
     if (arrayLocaIder.length > 0) {
       const index = Math.floor(Math.random() * arrayLocaIder.length + 0);
@@ -89,7 +90,9 @@ io.on("connection", function(socket) {
         idUser: data.id,
         beginPlace: data.place,
         note: data.note,
-        time: Date.now()
+        time: Date.now(),
+        cusphone: data.cusphone,
+        cusname: data.cusname
       };
       ele = arrayLocaIder.filter((per, inde) => {
         return per.id == arrayLocaIder[index].id;
@@ -194,8 +197,9 @@ function sendDriverByListSorted(array, requestId) {
           });
           var result = row.slice(0, MAXIMUM_DRIVER_REQUEST);
           ele = array.filter((per, index) => {
-            return per.id == row[0].driverid;
+            return per.id == result[0].driverid;
           });
+          driverRepo.setRequest(result[0].driverid);
           for (i = 0; i < ele.length; i++) {
             io.to(ele[i].socketid).emit(
               "server-send-request-driver",
