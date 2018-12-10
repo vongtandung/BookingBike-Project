@@ -8,8 +8,10 @@ var arrayDriver = [];
 var arrayLocaIder = [];
 var arrayManager = [];
 var arrayUser = [];
+var arrayLocaIderTemp = [];
+var curr = 0;
 const MAXIMUM_DRIVER_REQUEST = 3;
-io.on("connection", function(socket) {
+io.on("connection", function (socket) {
   console.log(socket.id);
   console.log("name: " + socket.handshake.query.name);
   person = {
@@ -38,7 +40,7 @@ io.on("connection", function(socket) {
       }
     }
   }
-  socket.on("driver-send-response", function(resp) {
+  socket.on("driver-send-response", function (resp) {
     if (resp.mess === "accept") {
       requestRepo.updateState("Accepted", resp.requestid).then(() => {
         sendResultToUser(
@@ -83,9 +85,12 @@ io.on("connection", function(socket) {
       io.to(ele[i].socketid).emit("finish");
     }
   })*/
-  socket.on("user-send-place", function(data) {
+  socket.on("user-send-place", function (data) {
     if (arrayLocaIder.length > 0) {
-      const index = Math.floor(Math.random() * arrayLocaIder.length + 0);
+      if (curr > arrayLocaIder.length - 1) {
+        curr = 0
+        arrayLocaIderTemp = []
+      }
       const request = {
         idUser: data.id,
         beginPlace: data.place,
@@ -94,25 +99,61 @@ io.on("connection", function(socket) {
         cusphone: data.cusphone,
         cusname: data.cusname
       };
-      ele = arrayLocaIder.filter((per, inde) => {
-        return per.id == arrayLocaIder[index].id;
-      });
-      requestRepo.addRequest(request).then(row => {
-        for (i = 0; i < ele.length; i++) {
-          io.to(ele[i].socketid).emit("server-send-place-locate", row.insertId);
+      arrayLocaIder.sort(function (a, b) {
+        var x = a.id;
+        var y = b.id;
+        if (x < y) {
+          return -1;
+        } else {
+          return 1;
         }
-      });
+      });      
+      if (binarySearch(arrayLocaIderTemp, arrayLocaIder[curr].id)) {
+        while (curr < arrayLocaIder.length && curr !== arrayLocaIder.length-1) {
+          if (arrayLocaIder[curr].id === arrayLocaIder[curr + 1].id) {
+            curr = curr + 1
+          } else {
+            break;
+          }
+        }
+        if (curr === arrayLocaIder.length - 1) {
+          curr = 0
+          arrayLocaIderTemp = []
+          sendRequestToLocate(request)
+        } else {
+          curr = curr + 1
+          sendRequestToLocate(request)
+          curr = curr + 1
+        }
+      } else {
+        // arrayLocaIderTemp.push(arrayLocaIder[curr].id)
+        // ele = arrayLocaIder.filter((per, inde) => {
+        //   return per.id == arrayLocaIder[curr].id;
+        // });
+        // requestRepo.addRequest(request).then(row => {
+        //   for (i = 0; i < ele.length; i++) {
+        //     io.to(ele[i].socketid).emit("server-send-place-locate", row.insertId);
+        //   }
+        // });
+        sendRequestToLocate(request)
+        if (curr < arrayLocaIder.length) {
+          curr = curr + 1
+        } else {
+          arrayLocaIderTemp = []
+          curr = 0
+        }
+      }
     } else {
       console.log("No location Identifier is on");
     }
   });
-  socket.on("locate-send-result", function(requestid) {
+  socket.on("locate-send-result", function (requestid) {
     sendDriverByListSorted(arrayDriver, requestid).then(arr => {
       Listarr = arr;
     });
   });
 
-  socket.on("disconnect", function() {
+  socket.on("disconnect", function () {
     ele = arrayLocaIder.filter((per, index) => {
       return per.socketid === socket.id;
     });
@@ -163,9 +204,9 @@ function distanceWithHaversin(lat1, lon1, lat2, lon2) {
   var a =
     Math.sin(dentalat / 2) * Math.sin(dentalat / 2) +
     Math.cos(p1) *
-      Math.cos(p2) *
-      Math.sin(dentalon / 2) *
-      Math.sin(dentalon / 2);
+    Math.cos(p2) *
+    Math.sin(dentalon / 2) *
+    Math.sin(dentalon / 2);
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
@@ -186,7 +227,7 @@ function sendDriverByListSorted(array, requestId) {
               row[i].lng
             );
           }
-          row.sort(function(a, b) {
+          row.sort(function (a, b) {
             var x = a.distance;
             var y = b.distance;
             if (x < y) {
@@ -227,4 +268,31 @@ function sendResultToUser(repo, event, id) {
       io.to(ele[i].socketid).emit(event, row[0].idDriver);
     }
   });
+}
+function sendRequestToLocate(request) {
+  arrayLocaIderTemp.push(arrayLocaIder[curr].id)
+  ele = arrayLocaIder.filter((per, inde) => {
+    return per.id == arrayLocaIder[curr].id;
+  });
+  requestRepo.addRequest(request).then(row => {
+    for (i = 0; i < ele.length; i++) {
+      io.to(ele[i].socketid).emit("server-send-place-locate", row.insertId);
+    }
+  });
+}
+function binarySearch(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  while (left <= right) {
+      const mid = left + Math.floor((right - left) / 2);
+      if (arr[mid] === target) {
+          return true;
+      }
+      if (arr[mid] < target) {
+          left = mid + 1;
+      } else {
+          right = mid - 1;
+      }
+  }
+  return false;
 }
