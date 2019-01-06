@@ -169,6 +169,7 @@ class User extends Component {
               aria-label="Large"
               aria-describedby="inputGroup-sizing-sm"
               placeholder="Nhập SĐT"
+              maxLength="10"
             />
           </div>
         </div>
