@@ -174,19 +174,31 @@ class LocateIdentify extends Component {
     self.webService
       .getPlace(res.place)
       .then(res => {
-        userDet.addrAutoRev = res.results[0].formatted_address;
-        userDet.center = res.results[0].geometry.location;
-        self.userList.push(userDet);
-        self.setState(
-          { userList: self.userList, userNum: self.userList.length },
-          () => {
-            self.initSelfData(self.state.userList, self.state.userNum);
-          }
-        );
+        if (res.results[0].plus_code.compound_code.indexOf("Vietnam") !== -1) {
+          userDet.addrAutoRev = res.results[0].formatted_address;
+          userDet.center = res.results[0].geometry.location;
+          self.userList.push(userDet);
+          self.setState(
+            { userList: self.userList, userNum: self.userList.length },
+            () => {
+              self.initSelfData(self.state.userList, self.state.userNum);
+            }
+          );
+        } else {
+          userDet.center.lat = 10.75399;
+          userDet.center.lng = 106.68691;
+          self.userList.push(userDet);
+          self.setState(
+            { userList: self.userList, userNum: self.userList.length },
+            () => {
+              self.initSelfData(self.state.userList, self.state.userNum);
+            }
+          );
+        }
       })
       .catch(() => {
-        userDet.center.lat = 10.80194;
-        userDet.center.lng = 106.738449;
+        userDet.center.lat = 10.75399;
+        userDet.center.lng = 106.68691;
         self.userList.push(userDet);
         self.setState(
           { userList: self.userList, userNum: self.userList.length },
@@ -277,7 +289,7 @@ class Map extends Component {
     };
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.userSelect !== this.props.userSelect) {
+    if ((nextProps.userSelect !== this.props.userSelect) && (nextProps.userList.length >= this.props.userList.length)) {
       this.setState({
         center: this.props.userList[nextProps.userSelect].center
       });
@@ -310,7 +322,6 @@ class Map extends Component {
             title: "Hệ thống chỉ khả dụng trong phạm vi Việt Nam",
             mess: ""
           });
-          self.forceUpdate();
         }
       })
       .catch(error => {});
